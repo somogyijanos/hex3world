@@ -1,0 +1,19 @@
+{
+  "name": "hex3world",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/three": "^0.178.1",
+    "three": "^0.178.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
