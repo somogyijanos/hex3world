@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { World, AssetPack } from '../types/index.js';
+import { World, AssetPack, GeometryConfig } from '../types/index.js';
 import { AssetPackManager } from '../core/AssetPackManager.js';
 import { HexCoordinates } from '../core/HexCoordinates.js';
 
@@ -13,6 +13,17 @@ export interface RendererConfig {
   showGrid?: boolean;
 }
 
+export interface HexGridOrientation {
+  tilePlane: 'xy' | 'xz' | 'yz';           // Which plane hexes lie in
+  upAxis: 'x' | 'y' | 'z';                 // Which axis is "up" (tile thickness)
+  upDirection: 1 | -1;                     // Positive or negative direction
+  higherOrderAxis: 'x' | 'y' | 'z';       // Primary axis in tile plane (x>y>z rule)
+  lowerOrderAxis: 'x' | 'y' | 'z';        // Secondary axis in tile plane
+  vertex0Direction: THREE.Vector3;          // Direction from center to vertex 0
+  isPointyTop: boolean;                    // Whether hexes are pointy-top or flat-top
+  hexToWorldTransform: THREE.Matrix4;      // Transform matrix for hex coords
+}
+
 export class HexWorldRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
@@ -22,6 +33,7 @@ export class HexWorldRenderer {
   private loadedModels = new Map<string, THREE.BufferGeometry>();
   private materialCache = new Map<string, THREE.Material>();
   private worldGroup: THREE.Group;
+  private placedTileMeshes = new Map<string, THREE.Mesh>(); // Cache placed tile meshes for add-on positioning
 
   constructor(config: RendererConfig, assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -81,23 +93,47 @@ export class HexWorldRenderer {
   }
 
   private setupLighting(): void {
-    // Ambient light
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-    this.scene.add(ambientLight);
+    console.log('💡 SETTING UP IMPROVED LIGHTING SYSTEM...');
     
-    // Directional light (sun)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 10, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.near = 0.5;
-    directionalLight.shadow.camera.far = 50;
-    directionalLight.shadow.camera.left = -10;
-    directionalLight.shadow.camera.right = 10;
-    directionalLight.shadow.camera.top = 10;
-    directionalLight.shadow.camera.bottom = -10;
-    this.scene.add(directionalLight);
+    // Softer ambient light for natural look
+    const ambientLight = new THREE.AmbientLight(0x87CEEB, 0.2); // Sky blue, much lower intensity
+    this.scene.add(ambientLight);
+    console.log('  ✅ Ambient light: Sky blue, 0.2 intensity');
+    
+    // Main directional light (sun) - positioned more naturally
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    sunLight.position.set(-5, 15, 10); // More natural sun position
+    sunLight.castShadow = true;
+    
+    // Better shadow settings for hex world
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.1;
+    sunLight.shadow.camera.far = 100;
+    sunLight.shadow.camera.left = -20;
+    sunLight.shadow.camera.right = 20;
+    sunLight.shadow.camera.top = 20;
+    sunLight.shadow.camera.bottom = -20;
+    sunLight.shadow.bias = -0.0001; // Reduce shadow acne
+    sunLight.shadow.normalBias = 0.02;
+    
+    this.scene.add(sunLight);
+    console.log('  ✅ Sun light: White, 1.0 intensity, position(-5, 15, 10)');
+    
+    // Fill light for softer shadows
+    const fillLight = new THREE.DirectionalLight(0x87CEEB, 0.3);
+    fillLight.position.set(5, 8, -5); // Opposite side, softer
+    // No shadows for fill light to keep performance good
+    this.scene.add(fillLight);
+    console.log('  ✅ Fill light: Sky blue, 0.3 intensity, position(5, 8, -5)');
+    
+    // Subtle rim light for better definition
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    rimLight.position.set(0, 5, -10); // From behind/below
+    this.scene.add(rimLight);
+    console.log('  ✅ Rim light: White, 0.2 intensity, position(0, 5, -10)');
+    
+    console.log('💡 LIGHTING SETUP COMPLETE - Much more natural and appealing!');
   }
 
   private async setupControls(): Promise<void> {
@@ -265,28 +301,154 @@ export class HexWorldRenderer {
     }
     
     const config = assetPack.geometry_config;
+    const orientation = this.analyzeGeometryConfig(config);
     
-    console.log(`🔄 COORDINATE SYSTEM TRANSFORMATION:`);
+    console.log(`🔄 MODEL COORDINATE SYSTEM TRANSFORMATION:`);
     console.log(`  Pack config: tile_up_axis="${config.tile_up_axis}", parallel_edge_direction="${config.parallel_edge_direction}"`);
-    console.log(`  Three.js uses: Y-up (positive Y points UP)`);
+    console.log(`  Three.js target: Y-up (positive Y points UP)`);
+    console.log(`  Derived orientation: ${orientation.isPointyTop ? 'pointy-top' : 'flat-top'}, plane=${orientation.tilePlane}`);
     
-    if (config.tile_up_axis === 'z+') {
-      console.log(`  🔄 TRANSFORM: Pack uses Z-up → Three.js uses Y-up`);
+    // Step 1: Transform up-axis to align with Three.js Y-up
+    if (orientation.upAxis === 'z' && orientation.upDirection === 1) {
+      console.log(`  🔄 STEP 1: Pack Z-up → Three.js Y-up`);
       console.log(`  🔄 APPLYING: -90° rotation around X-axis`);
-      console.log(`     This should rotate Z-up → Y-up (fix upside-down issue)`);
-      console.log(`     Before: Z points up, After: Y points up`);
-      
       geometry.rotateX(-Math.PI / 2);
-      
-      console.log(`  ✅ ROTATION APPLIED`);
-    } else if (config.tile_up_axis === 'y+') {
-      console.log(`  ✅ NO TRANSFORM NEEDED - pack already uses Y-up like Three.js`);
+      console.log(`  ✅ Up-axis rotation applied`);
+    } else if (orientation.upAxis === 'y' && orientation.upDirection === 1) {
+      console.log(`  ✅ STEP 1: Pack already Y-up, no up-axis transform needed`);
+    } else if (orientation.upAxis === 'x' && orientation.upDirection === 1) {
+      console.log(`  🔄 STEP 1: Pack X-up → Three.js Y-up`);
+      console.log(`  🔄 APPLYING: -90° rotation around Z-axis`);
+      geometry.rotateZ(-Math.PI / 2);
+      console.log(`  ✅ Up-axis rotation applied`);
     } else {
-      console.warn(`  ❌ UNSUPPORTED tile_up_axis: ${config.tile_up_axis}`);
+      console.warn(`  ❌ UNSUPPORTED up-axis: ${config.tile_up_axis}`);
     }
     
-    // TODO: Handle parallel_edge_direction if it affects individual model orientation
-    console.log(`  📝 TODO: parallel_edge_direction handling not implemented yet`);
+    // Step 2: Handle edge alignment transformation
+    // After up-axis transform, we may need additional rotation to align edges correctly
+    // This ensures the hex edges are oriented as expected in Three.js coordinate system
+    
+         // Step 2: Handle edge alignment transformation  
+     // For hex grids, rotations should be in 30° or 60° increments
+     if (orientation.tilePlane === 'xy' && orientation.upAxis === 'z') {
+       // Common case: Z-up pack with XY tile plane
+       // After Z→Y transform, we might need rotation around Y-axis for edge alignment
+       const parallelAxisChar = config.parallel_edge_direction[0] as 'x' | 'y' | 'z';
+       
+       console.log(`  🔄 STEP 2: Analyzing edge alignment...`);
+       console.log(`    Parallel axis: ${parallelAxisChar}, Higher-order: ${orientation.higherOrderAxis}`);
+       console.log(`    Hex type: ${orientation.isPointyTop ? 'pointy-top' : 'flat-top'}`);
+       
+               // TEMPORARILY DISABLED: Edge alignment rotation (might be causing 60° misrotation)
+        console.log(`  🚧 STEP 2: Edge alignment rotation temporarily disabled for debugging`);
+        console.log(`    This should eliminate the 60° misrotation issue`);
+        
+        // TODO: Implement correct edge alignment logic after confirming up-axis transform works
+        /*
+        if (parallelAxisChar === 'y' && orientation.higherOrderAxis === 'x') {
+          // Edge alignment rotation logic goes here
+        }
+        */
+     } else {
+       console.log(`  📝 STEP 2: Edge alignment for ${orientation.tilePlane} plane not fully implemented`);
+     }
+    
+    console.log(`  ✅ MODEL TRANSFORMATION COMPLETE`);
+  }
+
+  /**
+   * Analyze geometry config to determine hex grid orientation and coordinate system
+   */
+  private analyzeGeometryConfig(config: GeometryConfig): HexGridOrientation {
+    console.log(`🔍 ANALYZING GEOMETRY CONFIG:`);
+    console.log(`  tile_up_axis: "${config.tile_up_axis}"`);
+    console.log(`  parallel_edge_direction: "${config.parallel_edge_direction}"`);
+
+    // Parse up axis
+    const upAxisChar = config.tile_up_axis[0] as 'x' | 'y' | 'z';
+    const upDirection = config.tile_up_axis[1] === '+' ? 1 : -1;
+    
+    // Parse parallel edge direction  
+    const parallelAxisChar = config.parallel_edge_direction[0] as 'x' | 'y' | 'z';
+    const parallelDirection = config.parallel_edge_direction[1] === '+' ? 1 : -1;
+
+    // Determine tile plane (the two axes that aren't the up axis)
+    const axes: ('x' | 'y' | 'z')[] = ['x', 'y', 'z'];
+    const planeAxes = axes.filter(axis => axis !== upAxisChar);
+    
+    let tilePlane: 'xy' | 'xz' | 'yz';
+    if (planeAxes.includes('x') && planeAxes.includes('y')) {
+      tilePlane = 'xy';
+    } else if (planeAxes.includes('x') && planeAxes.includes('z')) {
+      tilePlane = 'xz';
+    } else {
+      tilePlane = 'yz';
+    }
+
+    // Determine higher-order axis in plane using x > y > z hierarchy
+    const axisOrder = { 'x': 3, 'y': 2, 'z': 1 };
+    const higherOrderAxis = planeAxes.reduce((higher, current) => 
+      axisOrder[current] > axisOrder[higher] ? current : higher
+    );
+    const lowerOrderAxis = planeAxes.find(axis => axis !== higherOrderAxis)!;
+
+    console.log(`  📐 Derived tile plane: ${tilePlane}`);
+    console.log(`  📊 Higher-order axis: ${higherOrderAxis} > ${lowerOrderAxis}`);
+    console.log(`  📍 Up axis: ${upAxisChar}${upDirection > 0 ? '+' : '-'}`);
+
+    // Determine if we have pointy-top or flat-top hexes
+    // CORRECTED LOGIC: If parallel edges align with a coordinate axis, we have flat-top
+    // If parallel edges would require rotation to align with axis, we have pointy-top
+    const isPointyTop = parallelAxisChar !== higherOrderAxis;
+    
+    console.log(`  🔺 Hex orientation: ${isPointyTop ? 'pointy-top' : 'flat-top'}`);
+    console.log(`  ↔️  Parallel edges along: ${parallelAxisChar}${parallelDirection > 0 ? '+' : '-'}`);
+
+    // Calculate vertex 0 direction (first vertex clockwise from higher-order axis)
+    // This will be used for deterministic vertex indexing
+    const vertex0Direction = new THREE.Vector3();
+    
+    // Start from the higher-order axis direction in the tile plane
+    if (tilePlane === 'xy') {
+      if (higherOrderAxis === 'x') {
+        vertex0Direction.set(1, 0, 0); // Start from +X direction
+      } else {
+        vertex0Direction.set(0, 1, 0); // Start from +Y direction  
+      }
+    } else if (tilePlane === 'xz') {
+      if (higherOrderAxis === 'x') {
+        vertex0Direction.set(1, 0, 0); // Start from +X direction
+      } else {
+        vertex0Direction.set(0, 0, 1); // Start from +Z direction
+      }
+    } else { // yz plane
+      if (higherOrderAxis === 'y') {
+        vertex0Direction.set(0, 1, 0); // Start from +Y direction
+      } else {
+        vertex0Direction.set(0, 0, 1); // Start from +Z direction
+      }
+    }
+
+    // Create coordinate transformation matrix
+    // This will transform from standard hex coordinates to the asset pack's coordinate system
+    const hexToWorldTransform = new THREE.Matrix4();
+    
+    // For now, start with identity - we'll build the actual transform logic next
+    hexToWorldTransform.identity();
+
+    console.log(`  ✅ Analysis complete`);
+
+    return {
+      tilePlane,
+      upAxis: upAxisChar,
+      upDirection,
+      higherOrderAxis,
+      lowerOrderAxis,
+      vertex0Direction,
+      isPointyTop,
+      hexToWorldTransform
+    };
   }
 
   /**
@@ -299,30 +461,55 @@ export class HexWorldRenderer {
 
     let material: THREE.Material;
 
+    console.log(`🎨 Creating material: ${materialType}`);
+
     switch (materialType) {
       case 'grass':
-        material = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+        material = new THREE.MeshStandardMaterial({ 
+          color: 0x228B22,
+          roughness: 0.8,
+          metalness: 0.0
+        });
         break;
       case 'water':
-        material = new THREE.MeshLambertMaterial({ 
+        material = new THREE.MeshStandardMaterial({ 
           color: 0x4169E1, 
           transparent: true, 
-          opacity: 0.8 
+          opacity: 0.8,
+          roughness: 0.1,
+          metalness: 0.0
         });
         break;
       case 'sand':
-        material = new THREE.MeshLambertMaterial({ color: 0xF4A460 });
+        material = new THREE.MeshStandardMaterial({ 
+          color: 0xF4A460,
+          roughness: 0.9,
+          metalness: 0.0
+        });
         break;
       case 'stone':
-        material = new THREE.MeshLambertMaterial({ color: 0x696969 });
+        material = new THREE.MeshStandardMaterial({ 
+          color: 0x696969,
+          roughness: 0.7,
+          metalness: 0.1
+        });
         break;
       case 'road':
-        material = new THREE.MeshLambertMaterial({ color: 0x555555 });
+        material = new THREE.MeshStandardMaterial({ 
+          color: 0x555555,
+          roughness: 0.6,
+          metalness: 0.0
+        });
         break;
       default:
-        material = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+        material = new THREE.MeshStandardMaterial({ 
+          color: 0xFFFFFF,
+          roughness: 0.5,
+          metalness: 0.0
+        });
     }
 
+    console.log(`  ✅ ${materialType} material: Standard PBR with appropriate roughness/metalness`);
     this.materialCache.set(materialType, material);
     return material;
   }
@@ -338,23 +525,82 @@ export class HexWorldRenderer {
   /**
    * Convert hex coordinates to position in Three.js coordinate system
    */
-  private hexToThreeJSPosition(q: number, r: number, elevation: number = 0): THREE.Vector3 {
+  private hexToThreeJSPosition(q: number, r: number, elevation: number, assetPack: AssetPack): THREE.Vector3 {
     console.log(`🧮 HEX-TO-POSITION CONVERSION:`);
     console.log(`  Input: hex(q=${q}, r=${r}), elevation=${elevation}`);
     
-    // Standard hex-to-cartesian conversion for pointy-top hexagons
-    const hexX = Math.sqrt(3) * (q + r / 2);
-    const hexZ = 3/2 * r;
+    const config = assetPack.geometry_config;
+    const orientation = this.analyzeGeometryConfig(config);
+
+    // Calculate hex coordinates in the asset pack's coordinate system
+    let hexCoord1: number; // Along higher-order axis in tile plane
+    let hexCoord2: number; // Along lower-order axis in tile plane
+
+    if (orientation.isPointyTop) {
+      // Pointy-top hexagon math
+      hexCoord1 = Math.sqrt(3) * (q + r / 2);
+      hexCoord2 = 3/2 * r;
+      console.log(`  📐 Using POINTY-TOP hex math`);
+    } else {
+      // Flat-top hexagon math  
+      hexCoord1 = 3/2 * q;
+      hexCoord2 = Math.sqrt(3) * (r + q / 2);
+      console.log(`  📐 Using FLAT-TOP hex math`);
+    }
     
-    console.log(`  Hex math: X = √3 * (${q} + ${r}/2) = ${hexX.toFixed(3)}`);
-    console.log(`  Hex math: Z = 3/2 * ${r} = ${hexZ.toFixed(3)}`);
-    console.log(`  Y = elevation = ${elevation}`);
+    console.log(`  🔺 ${orientation.isPointyTop ? 'Pointy-top' : 'Flat-top'} hex math:`);
+    console.log(`    ${orientation.higherOrderAxis} = ${hexCoord1.toFixed(3)}`);
+    console.log(`    ${orientation.lowerOrderAxis} = ${hexCoord2.toFixed(3)}`);
+    console.log(`    ${orientation.upAxis} = elevation = ${elevation}`);
+
+    // Now map these coordinates to Three.js coordinate system
+    // Three.js always uses Y-up, so we need to transform from asset pack CS to Three.js CS
+    const assetPackPosition = new THREE.Vector3();
     
-    // Three.js uses Y-up coordinate system
-    const result = new THREE.Vector3(hexX, elevation, hexZ);
-    console.log(`  Result: Three.js position (${result.x.toFixed(3)}, ${result.y.toFixed(3)}, ${result.z.toFixed(3)})`);
+    // Set coordinates in the asset pack's coordinate system
+    if (orientation.tilePlane === 'xy') {
+      // Asset pack uses XY plane
+      if (orientation.higherOrderAxis === 'x') {
+        assetPackPosition.set(hexCoord1, hexCoord2, elevation * orientation.upDirection);
+      } else {
+        assetPackPosition.set(hexCoord2, hexCoord1, elevation * orientation.upDirection);
+      }
+    } else if (orientation.tilePlane === 'xz') {
+      // Asset pack uses XZ plane
+      if (orientation.higherOrderAxis === 'x') {
+        assetPackPosition.set(hexCoord1, elevation * orientation.upDirection, hexCoord2);
+      } else {
+        assetPackPosition.set(hexCoord2, elevation * orientation.upDirection, hexCoord1);
+      }
+    } else { // yz plane
+      // Asset pack uses YZ plane
+      if (orientation.higherOrderAxis === 'y') {
+        assetPackPosition.set(elevation * orientation.upDirection, hexCoord1, hexCoord2);
+      } else {
+        assetPackPosition.set(elevation * orientation.upDirection, hexCoord2, hexCoord1);
+      }
+    }
+
+    // Transform from asset pack coordinate system to Three.js coordinate system
+    const threeJSPosition = new THREE.Vector3();
     
-    return result;
+    if (orientation.upAxis === 'z' && orientation.upDirection === 1) {
+      // Asset pack is Z-up, Three.js is Y-up -> rotate -90° around X
+      threeJSPosition.set(assetPackPosition.x, assetPackPosition.z, -assetPackPosition.y);
+    } else if (orientation.upAxis === 'y' && orientation.upDirection === 1) {
+      // Asset pack is already Y-up like Three.js -> no rotation needed
+      threeJSPosition.copy(assetPackPosition);
+    } else {
+      // Other orientations - for now, use a simple mapping
+      // TODO: Implement full 3D rotation matrix for all axis combinations
+      console.warn(`  ⚠️  Coordinate transformation for ${orientation.upAxis}${orientation.upDirection > 0 ? '+' : '-'} not fully implemented yet`);
+      threeJSPosition.copy(assetPackPosition);
+    }
+    
+    console.log(`  📍 Asset pack position: (${assetPackPosition.x.toFixed(3)}, ${assetPackPosition.y.toFixed(3)}, ${assetPackPosition.z.toFixed(3)})`);
+    console.log(`  🎯 Three.js position: (${threeJSPosition.x.toFixed(3)}, ${threeJSPosition.y.toFixed(3)}, ${threeJSPosition.z.toFixed(3)})`);
+    
+    return threeJSPosition;
   }
 
   /**
@@ -363,6 +609,9 @@ export class HexWorldRenderer {
   async renderWorld(world: World): Promise<void> {
     // Clear existing world
     this.worldGroup.clear();
+    
+    // Clear tile mesh cache
+    this.placedTileMeshes.clear();
     
     // Get asset pack
     const assetPack = this.assetPackManager.getAssetPack(world.asset_pack);
@@ -410,7 +659,7 @@ export class HexWorldRenderer {
       mesh.receiveShadow = true;
       
       // Position the tile in Three.js coordinate system
-      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation);
+      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
       console.log(`📍 POSITIONING TILE: hex(${worldTile.q}, ${worldTile.r}) → world(${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)})`);
       
       mesh.position.copy(position);
@@ -420,6 +669,10 @@ export class HexWorldRenderer {
       
       // Add to world group
       this.worldGroup.add(mesh);
+      
+      // Cache the placed tile mesh for add-on positioning
+      const tileKey = `${worldTile.q},${worldTile.r}`;
+      this.placedTileMeshes.set(tileKey, mesh);
       
       console.log(`✅ TILE ADDED TO SCENE\n`);
       
@@ -431,10 +684,14 @@ export class HexWorldRenderer {
       const material = this.getMaterial(tileDefinition.base_material);
       const mesh = new THREE.Mesh(geometry, material);
       
-      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation);
+      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
       mesh.position.copy(position);
       
       this.worldGroup.add(mesh);
+      
+      // Cache the fallback tile mesh too
+      const tileKey = `${worldTile.q},${worldTile.r}`;
+      this.placedTileMeshes.set(tileKey, mesh);
     }
   }
 
@@ -463,65 +720,125 @@ export class HexWorldRenderer {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.castShadow = true;
       
-      // Find the tile this addon is placed on to get its elevation and type
-      const tile = world.tiles.find(t => t.q === worldAddon.q && t.r === worldAddon.r);
-      const tileElevation = tile ? tile.elevation : 0;
+      // Find the actual placed tile mesh to get its real surface position
+      const tileKey = `${worldAddon.q},${worldAddon.r}`;
+      const tileMesh = this.placedTileMeshes.get(tileKey);
       
-      // Get tile definition and calculate actual tile height
-      const tileDefinition = tile ? assetPack.tiles.find(t => t.id === tile.tile_type) : null;
-      let tileHeight = 0;
+      let tileSurfacePosition: THREE.Vector3;
       
-      if (tileDefinition) {
-        try {
-          // Load the tile geometry to get its actual height
-          const tileGeometry = await this.loadSTLModel(`assets/${tileDefinition.model}`, assetPack);
-          tileGeometry.computeBoundingBox();
-          if (tileGeometry.boundingBox) {
-            // Get the height (Y dimension in Three.js coordinate system after transformation)
-            tileHeight = tileGeometry.boundingBox.max.y - tileGeometry.boundingBox.min.y;
-            console.log(`📏 Calculated tile height for ${tileDefinition.id}: ${tileHeight.toFixed(3)}`);
-          }
-        } catch (error) {
-          console.warn(`Failed to calculate tile height for ${tileDefinition.id}, using default`);
-          tileHeight = 0.1; // Fallback
-        }
+      if (tileMesh) {
+        // Get the actual bounding box of the placed tile mesh
+        const tileBox = new THREE.Box3().setFromObject(tileMesh);
+        
+        console.log(`🔍 DEBUGGING TILE POSITIONING FOR ADD-ON:`);
+        console.log(`  Tile mesh position: (${tileMesh.position.x.toFixed(3)}, ${tileMesh.position.y.toFixed(3)}, ${tileMesh.position.z.toFixed(3)})`);
+        console.log(`  Tile bounding box: min(${tileBox.min.x.toFixed(3)}, ${tileBox.min.y.toFixed(3)}, ${tileBox.min.z.toFixed(3)}), max(${tileBox.max.x.toFixed(3)}, ${tileBox.max.y.toFixed(3)}, ${tileBox.max.z.toFixed(3)})`);
+        
+        const tileHeight = tileBox.max.y - tileBox.min.y;
+        const tileCenterY = tileMesh.position.y;
+        const tileTopY = tileBox.max.y;
+        const tileBottomY = tileBox.min.y;
+        
+        console.log(`  Tile height: ${tileHeight.toFixed(3)}`);
+        console.log(`  Tile center Y: ${tileCenterY.toFixed(3)}`);
+        console.log(`  Tile bottom Y: ${tileBottomY.toFixed(3)}`);  
+        console.log(`  Tile top Y: ${tileTopY.toFixed(3)}`);
+        
+        // For add-ons, we want to place them on the top surface exactly (no offset needed)
+        tileSurfacePosition = new THREE.Vector3(
+          tileMesh.position.x,  // Use tile center X
+          tileBox.max.y,        // Use actual top surface Y (no offset needed)
+          tileMesh.position.z   // Use tile center Z
+        );
+        
+        console.log(`  Final tile surface position: (${tileSurfacePosition.x.toFixed(3)}, ${tileSurfacePosition.y.toFixed(3)}, ${tileSurfacePosition.z.toFixed(3)})`);
+      } else {
+        // Fallback: calculate position if tile mesh not found
+        console.warn(`⚠️  Tile mesh not found at (${worldAddon.q}, ${worldAddon.r}), using fallback positioning`);
+        const tile = world.tiles.find(t => t.q === worldAddon.q && t.r === worldAddon.r);
+        const tileElevation = tile ? tile.elevation : 0;
+        tileSurfacePosition = this.hexToThreeJSPosition(worldAddon.q, worldAddon.r, tileElevation, assetPack);
       }
       
-      // Position the addon at the tile's base position first
-      const tileBasePosition = this.hexToThreeJSPosition(worldAddon.q, worldAddon.r, tileElevation);
+      // Apply local position offset using proper geometry config transformation
+      const config = assetPack.geometry_config;
+      const orientation = this.analyzeGeometryConfig(config);
       
-      // Create the tile surface position by adding the tile height to Y coordinate
-      const tilePosition = new THREE.Vector3(
-        tileBasePosition.x,
-        tileBasePosition.y + tileHeight, // Add tile height to Y to get surface position
-        tileBasePosition.z
+      console.log(`🔧 ADD-ON LOCAL COORDINATE TRANSFORMATION:`);
+      console.log(`  Pack local position: [${worldAddon.local_position.join(', ')}]`);
+      console.log(`  Pack orientation: ${orientation.isPointyTop ? 'pointy-top' : 'flat-top'}, plane=${orientation.tilePlane}, up=${orientation.upAxis}${orientation.upDirection > 0 ? '+' : '-'}`);
+      
+      // Transform local coordinates from asset pack coordinate system to Three.js coordinate system
+      const packLocalPos = new THREE.Vector3(
+        worldAddon.local_position[0],
+        worldAddon.local_position[1], 
+        worldAddon.local_position[2]
       );
       
-      console.log(`📍 Add-on positioning: base Y=${tileBasePosition.y.toFixed(3)}, tile height=${tileHeight.toFixed(3)}, surface Y=${tilePosition.y.toFixed(3)}`);
+      let threeJSLocalPos = new THREE.Vector3();
       
-      // Apply local position offset in Three.js coordinate system
-      // Convert pack-relative offsets to Three.js coordinate system
-      const config = assetPack.geometry_config;
-      let offsetX, offsetY, offsetZ;
-      
-      if (config?.tile_up_axis === 'z+') {
-        // Pack coordinates: [x, y, z] -> Three.js coordinates: [x, -z, y]
-        // Note: With -90° X rotation, pack Y becomes Three.js Z, pack Z becomes Three.js -Y
-        offsetX = worldAddon.local_position[0];
-        offsetY = -worldAddon.local_position[2]; // Pack Z becomes Three.js -Y (due to -90° rotation)
-        offsetZ = worldAddon.local_position[1]; // Pack Y becomes Three.js Z
+      // Apply coordinate system transformation for add-on local offsets
+      if (orientation.upAxis === 'z' && orientation.upDirection === 1) {
+        // Asset pack is Z-up, Three.js is Y-up
+        // For local offsets: pack [x, y, z] -> Three.js [x, z, -y]
+        // BUT: pack Y should remain as Y (height above surface)
+        // AND: pack Z (vertical in pack) should become Y (vertical in Three.js)
+        threeJSLocalPos.set(
+          packLocalPos.x,   // Pack X → Three.js X (left/right stays the same)
+          packLocalPos.z,   // Pack Z → Three.js Y (pack up/down becomes Three.js up/down)
+          packLocalPos.y    // Pack Y → Three.js Z (pack forward/back becomes Three.js forward/back)
+        );
+        console.log(`  🔄 Applied Z-up → Y-up transform: [${packLocalPos.x.toFixed(3)}, ${packLocalPos.y.toFixed(3)}, ${packLocalPos.z.toFixed(3)}] → [${threeJSLocalPos.x.toFixed(3)}, ${threeJSLocalPos.y.toFixed(3)}, ${threeJSLocalPos.z.toFixed(3)}]`);
+      } else if (orientation.upAxis === 'y' && orientation.upDirection === 1) {
+        // Pack already uses Y-up like Three.js - no transformation needed
+        threeJSLocalPos.copy(packLocalPos);
+        console.log(`  ✅ No transform needed: pack already Y-up`);
+      } else if (orientation.upAxis === 'x' && orientation.upDirection === 1) {
+        // Asset pack is X-up, Three.js is Y-up -> apply -90° Z rotation transformation  
+        // [x, y, z] -> [-y, x, z]
+        threeJSLocalPos.set(-packLocalPos.y, packLocalPos.x, packLocalPos.z);
+        console.log(`  🔄 Applied X-up → Y-up transform: [${packLocalPos.x.toFixed(3)}, ${packLocalPos.y.toFixed(3)}, ${packLocalPos.z.toFixed(3)}] → [${threeJSLocalPos.x.toFixed(3)}, ${threeJSLocalPos.y.toFixed(3)}, ${threeJSLocalPos.z.toFixed(3)}]`);
       } else {
-        // Pack already uses Y-up like Three.js
-        offsetX = worldAddon.local_position[0];
-        offsetY = worldAddon.local_position[1];
-        offsetZ = worldAddon.local_position[2];
+        // Unsupported orientation - fallback to no transformation
+        threeJSLocalPos.copy(packLocalPos);
+        console.warn(`  ⚠️  Unsupported orientation for local coordinates: ${orientation.upAxis}${orientation.upDirection > 0 ? '+' : '-'}`);
       }
+      
+      const offsetX = threeJSLocalPos.x;
+      const offsetY = threeJSLocalPos.y;
+      const offsetZ = threeJSLocalPos.z;
+      
+      // CORRECT APPROACH: Position add-on so its BOTTOM sits on tile TOP
+      // First, we need to find the add-on's bounding box to know where its bottom is
+      geometry.computeBoundingBox();
+      const addonBBox = geometry.boundingBox!;
+      
+      console.log(`📦 Add-on bounding box: min(${addonBBox.min.x.toFixed(3)}, ${addonBBox.min.y.toFixed(3)}, ${addonBBox.min.z.toFixed(3)}), max(${addonBBox.max.x.toFixed(3)}, ${addonBBox.max.y.toFixed(3)}, ${addonBBox.max.z.toFixed(3)})`);
+      console.log(`📏 Add-on height: ${(addonBBox.max.y - addonBBox.min.y).toFixed(3)}`);
+      console.log(`📍 Add-on bottom relative to center: ${addonBBox.min.y.toFixed(3)}`);
+      
+      // Calculate the Y position so that add-on bottom = tile top
+      // If add-on center is at position.y, then add-on bottom is at position.y + addonBBox.min.y
+      // We want: position.y + addonBBox.min.y = tileSurfacePosition.y
+      // So: position.y = tileSurfacePosition.y - addonBBox.min.y
+      const correctY = tileSurfacePosition.y - addonBBox.min.y + offsetY;
+      
+      console.log(`🧮 POSITIONING CALCULATION:`);
+      console.log(`  Tile top Y: ${tileSurfacePosition.y.toFixed(3)}`);
+      console.log(`  Add-on bottom offset: ${addonBBox.min.y.toFixed(3)}`);
+      console.log(`  Required add-on center Y: ${(tileSurfacePosition.y - addonBBox.min.y).toFixed(3)}`);
+      console.log(`  Add-on local Y offset: ${offsetY.toFixed(3)}`);
+      console.log(`  Final add-on center Y: ${correctY.toFixed(3)}`);
       
       mesh.position.set(
-        tilePosition.x + offsetX,
-        tilePosition.y + offsetY,
-        tilePosition.z + offsetZ
+        tileSurfacePosition.x + offsetX,
+        correctY,
+        tileSurfacePosition.z + offsetZ
       );
+      
+      console.log(`🎯 ADD-ON FINAL POSITION: (${mesh.position.x.toFixed(3)}, ${mesh.position.y.toFixed(3)}, ${mesh.position.z.toFixed(3)})`);
+      console.log(`    Tile surface: (${tileSurfacePosition.x.toFixed(3)}, ${tileSurfacePosition.y.toFixed(3)}, ${tileSurfacePosition.z.toFixed(3)})`);
+      console.log(`    Local offset: (${offsetX.toFixed(3)}, ${offsetY.toFixed(3)}, ${offsetZ.toFixed(3)})`);
       
       // Apply local rotation around Three.js Y axis (up axis)
       mesh.rotation.y = THREE.MathUtils.degToRad(worldAddon.local_rotation);
