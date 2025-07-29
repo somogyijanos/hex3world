@@ -44,9 +44,11 @@ export class HexWorldRenderer {
   private uiScene!: THREE.Scene;
   private uiCamera!: THREE.OrthographicCamera;
   private cornerAxesGroup?: THREE.Group;
+  private showCoordinateAxes: boolean = true;
 
   constructor(config: RendererConfig, assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
+    this.showCoordinateAxes = config.showCornerAxes ?? true;
     
     // Initialize Three.js components
     this.scene = new THREE.Scene();
@@ -877,5 +879,49 @@ export class HexWorldRenderer {
     if (this.controls) {
       this.controls.dispose();
     }
+  }
+
+  /**
+   * Reset camera to default position and target
+   */
+  resetCamera(): void {
+    this.camera.position.set(5, 5, 5);
+    this.camera.lookAt(0, 0, 0);
+    
+    if (this.controls) {
+      this.controls.target.set(0, 0, 0);
+      this.controls.update();
+    }
+  }
+
+  /**
+   * Set camera to a preset view
+   */
+  setCameraPreset(position: [number, number, number], target: [number, number, number] = [0, 0, 0]): void {
+    this.camera.position.set(position[0], position[1], position[2]);
+    this.camera.lookAt(target[0], target[1], target[2]);
+    
+    if (this.controls) {
+      this.controls.target.set(target[0], target[1], target[2]);
+      this.controls.update();
+    }
+  }
+
+  /**
+   * Toggle coordinate system display
+   */
+  toggleCoordinateSystem(show: boolean): void {
+    this.showCoordinateAxes = show;
+    
+    if (this.cornerAxesGroup) {
+      this.cornerAxesGroup.visible = show;
+    }
+  }
+
+  /**
+   * Get current coordinate system visibility
+   */
+  getCoordinateSystemVisibility(): boolean {
+    return this.showCoordinateAxes;
   }
 }
