@@ -297,7 +297,7 @@ export class WorldManager {
    * For web applications, use loadWorldFromUrl() instead
    */
   async loadWorldFromFile(filePath: string): Promise<World> {
-    throw new WorldValidationError('File system operations not available in browser environment. Use loadWorldFromUrl() instead.');
+    throw new WorldValidationError(`File system operations not available in browser environment. Cannot load from ${filePath}. Use loadWorldFromUrl() instead.`);
   }
 
   /**

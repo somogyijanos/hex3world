@@ -40,8 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# old stuff
-archive
 
 # asset 3D models
 public/assets/models

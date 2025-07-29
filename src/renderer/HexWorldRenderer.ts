@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { World, AssetPack, GeometryConfig } from '../types/index';
+import { World, AssetPack, GeometryConfig, WorldTile, WorldAddOn } from '../types/index';
 import { AssetPackManager } from '../core/AssetPackManager';
-import { HexCoordinates } from '../core/HexCoordinates';
 
 export interface RendererConfig {
   container: HTMLElement;
@@ -25,13 +24,18 @@ export interface HexGridOrientation {
   hexToWorldTransform: THREE.Matrix4;      // Transform matrix for hex coords
 }
 
+export interface LoadedModel {
+  geometry: THREE.BufferGeometry;
+  materials: THREE.Material[];
+}
+
 export class HexWorldRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private controls?: OrbitControls;
   private assetPackManager: AssetPackManager;
-  private loadedModels = new Map<string, THREE.BufferGeometry>();
+  private loadedModels = new Map<string, LoadedModel>();
   private materialCache = new Map<string, THREE.Material>();
   private worldGroup: THREE.Group;
   private placedTileMeshes = new Map<string, THREE.Mesh>(); // Cache placed tile meshes for add-on positioning
@@ -351,13 +355,38 @@ export class HexWorldRenderer {
   };
 
   /**
-   * Load STL model and return geometry, transformed from pack CS to Three.js CS
+   * Load 3D model and return both geometry and materials (when available)
+   * Falls back to generated materials if model doesn't include them
    */
-  private async loadSTLModel(modelPath: string, assetPack: AssetPack): Promise<THREE.BufferGeometry> {
+  private async loadModel(modelPath: string, assetPack: AssetPack): Promise<LoadedModel> {
     const cacheKey = `${modelPath}_${assetPack.id}`;
     if (this.loadedModels.has(cacheKey)) {
-      return this.loadedModels.get(cacheKey)!.clone();
+      const cached = this.loadedModels.get(cacheKey)!;
+      return {
+        geometry: cached.geometry.clone(),
+        materials: [...cached.materials] // Shallow copy of materials array
+      };
     }
+
+    try {
+      // For now we only support STL, but this structure prepares for other formats
+      if (modelPath.toLowerCase().endsWith('.stl')) {
+        return await this.loadSTLModel(modelPath, assetPack);
+      } else {
+        throw new Error(`Unsupported model format: ${modelPath}`);
+      }
+    } catch (error) {
+      console.error(`Error loading model: ${modelPath}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load STL model and return geometry with fallback materials
+   * STL format doesn't include materials, so we return empty materials array
+   */
+  private async loadSTLModel(modelPath: string, assetPack: AssetPack): Promise<LoadedModel> {
+    const cacheKey = `${modelPath}_${assetPack.id}`;
 
     try {
       const loader = new STLLoader();
@@ -391,10 +420,18 @@ export class HexWorldRenderer {
             // Update bounding box after transformation
             geometry.computeBoundingBox();
             
-            this.loadedModels.set(cacheKey, geometry.clone());
-            resolve(geometry);
+            const loadedModel: LoadedModel = {
+              geometry: geometry.clone(),
+              materials: [] // STL doesn't include materials
+            };
+            
+            this.loadedModels.set(cacheKey, loadedModel);
+            resolve({
+              geometry: geometry,
+              materials: []
+            });
           },
-          (progress) => {
+          () => {
             // Loading progress - could add progress indicator here
           },
           (error) => {
@@ -415,7 +452,6 @@ export class HexWorldRenderer {
     }
 
     const config = assetPack.geometry_config;
-    const orientation = this.analyzeGeometryConfig(config);
 
     // Step 1: Transform up-axis to Y-up (Three.js standard)
     if (config.tile_up_axis[0] === 'z') {
@@ -427,8 +463,8 @@ export class HexWorldRenderer {
     }
     // If tile_up_axis === 'y', no transformation needed
 
-    // Step 2: Edge alignment rotation (currently disabled for debugging)
-    // This would handle hex orientation matching
+    // Step 2: Edge alignment rotation (to be implemented when needed)
+    // When implemented, will use this.analyzeGeometryConfig(config) for hex orientation matching
   }
 
   /**
@@ -441,7 +477,6 @@ export class HexWorldRenderer {
     
     // Parse parallel edge direction  
     const parallelAxisChar = config.parallel_edge_direction[0] as 'x' | 'y' | 'z';
-    const parallelDirection = config.parallel_edge_direction[1] === '+' ? 1 : -1;
 
     // Determine tile plane (the two axes that aren't the up axis)
     const axes: ('x' | 'y' | 'z')[] = ['x', 'y', 'z'];
@@ -513,63 +548,37 @@ export class HexWorldRenderer {
   }
 
   /**
-   * Get or create material for a material type
+   * Get or create a single fallback material for models without materials
    */
-  private getMaterial(materialType: string): THREE.Material {
-    if (this.materialCache.has(materialType)) {
-      return this.materialCache.get(materialType)!;
+  private getFallbackMaterial(): THREE.Material {
+    const FALLBACK_KEY = 'fallback';
+    
+    if (this.materialCache.has(FALLBACK_KEY)) {
+      return this.materialCache.get(FALLBACK_KEY)!;
     }
 
-    let material: THREE.Material;
+    // Create a single, nice-looking fallback material
+    const material = new THREE.MeshStandardMaterial({ 
+      color: 0xCCCCCC,  // Light gray
+      roughness: 0.7,
+      metalness: 0.1
+    });
 
-    switch (materialType) {
-      case 'grass':
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0x228B22,
-          roughness: 0.8,
-          metalness: 0.0
-        });
-        break;
-      case 'water':
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0x4169E1, 
-          transparent: true, 
-          opacity: 0.8,
-          roughness: 0.1,
-          metalness: 0.0
-        });
-        break;
-      case 'sand':
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0xF4A460,
-          roughness: 0.9,
-          metalness: 0.0
-        });
-        break;
-      case 'stone':
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0x696969,
-          roughness: 0.7,
-          metalness: 0.1
-        });
-        break;
-      case 'road':
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0x555555,
-          roughness: 0.6,
-          metalness: 0.0
-        });
-        break;
-      default:
-        material = new THREE.MeshStandardMaterial({ 
-          color: 0xFFFFFF,
-          roughness: 0.5,
-          metalness: 0.0
-        });
-    }
-
-    this.materialCache.set(materialType, material);
+    this.materialCache.set(FALLBACK_KEY, material);
     return material;
+  }
+
+  /**
+   * Get material for a model - use model materials if available, otherwise use single fallback
+   */
+  private getModelMaterial(loadedModel: LoadedModel): THREE.Material {
+    // If model includes materials, use the first one (or could be more sophisticated)
+    if (loadedModel.materials.length > 0) {
+      return loadedModel.materials[0];
+    }
+    
+    // Single fallback material for all cases when model doesn't include materials
+    return this.getFallbackMaterial();
   }
 
   /**
@@ -672,7 +681,7 @@ export class HexWorldRenderer {
     
   }
 
-  private async renderTile(worldTile: any, assetPack: AssetPack): Promise<void> {
+  private async renderTile(worldTile: WorldTile, assetPack: AssetPack): Promise<void> {
     const tileDefinition = assetPack.tiles.find(t => t.id === worldTile.tile_type);
     if (!tileDefinition) {
       console.warn(`Tile definition '${worldTile.tile_type}' not found`);
@@ -680,14 +689,14 @@ export class HexWorldRenderer {
     }
 
     try {
-      // Load geometry (now transformed to Three.js coordinate system)
-      const geometry = await this.loadSTLModel(`assets/${tileDefinition.model}`, assetPack);
+      // Load model (geometry + materials if available)
+      const loadedModel = await this.loadModel(`assets/${tileDefinition.model}`, assetPack);
       
-      // Get material
-      const material = this.getMaterial(tileDefinition.base_material);
+      // Get material - use model material if available, otherwise generate
+      const material = this.getModelMaterial(loadedModel);
       
       // Create mesh
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(loadedModel.geometry, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       
@@ -707,7 +716,7 @@ export class HexWorldRenderer {
     }
   }
 
-  private async renderAddon(worldAddon: any, assetPack: AssetPack, world: World): Promise<void> {
+  private async renderAddon(worldAddon: WorldAddOn, assetPack: AssetPack, world: World): Promise<void> {
     const addonDefinition = assetPack.addons.find(a => a.id === worldAddon.addon_id);
     if (!addonDefinition) {
       console.warn(`Addon definition '${worldAddon.addon_id}' not found`);
@@ -715,21 +724,13 @@ export class HexWorldRenderer {
     }
 
     try {
-      // Load geometry (now transformed to Three.js coordinate system)
-      const geometry = await this.loadSTLModel(`assets/${addonDefinition.model}`, assetPack);
+      // Load model (geometry + materials if available)
+      const loadedModel = await this.loadModel(`assets/${addonDefinition.model}`, assetPack);
       
-      // Determine material based on addon type
-      let materialType = 'grass'; // default
-      if (addonDefinition.tags.includes('tree')) {
-        materialType = 'grass'; // Trees are green
-      } else if (addonDefinition.tags.includes('rock')) {
-        materialType = 'stone'; // Rocks are stone colored
-      }
-      
-      const material = this.getMaterial(materialType);
+      const material = this.getModelMaterial(loadedModel);
       
       // Create mesh
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(loadedModel.geometry, material);
       mesh.castShadow = true;
       
       // Find the actual placed tile mesh to get its real surface position
@@ -741,11 +742,6 @@ export class HexWorldRenderer {
       if (tileMesh) {
         // Get the actual bounding box of the placed tile mesh
         const tileBox = new THREE.Box3().setFromObject(tileMesh);
-        
-        const tileHeight = tileBox.max.y - tileBox.min.y;
-        const tileCenterY = tileMesh.position.y;
-        const tileTopY = tileBox.max.y;
-        const tileBottomY = tileBox.min.y;
         
         // For add-ons, we want to place them on the top surface exactly (no offset needed)
         tileSurfacePosition = new THREE.Vector3(
@@ -773,7 +769,7 @@ export class HexWorldRenderer {
         worldAddon.local_position[2]
       );
       
-      let threeJSLocalPos = new THREE.Vector3();
+      const threeJSLocalPos = new THREE.Vector3();
       
       // Apply coordinate system transformation for add-on local offsets
       if (orientation.upAxis === 'z' && orientation.upDirection === 1) {
@@ -805,8 +801,8 @@ export class HexWorldRenderer {
       
       // CORRECT APPROACH: Position add-on so its BOTTOM sits on tile TOP
       // First, we need to find the add-on's bounding box to know where its bottom is
-      geometry.computeBoundingBox();
-      const addonBBox = geometry.boundingBox!;
+      loadedModel.geometry.computeBoundingBox();
+      const addonBBox = loadedModel.geometry.boundingBox!;
       
       // Calculate the Y position so that add-on bottom = tile top
       // If add-on center is at position.y, then add-on bottom is at position.y + addonBBox.min.y
@@ -866,8 +862,11 @@ export class HexWorldRenderer {
     this.materialCache.forEach(material => material.dispose());
     this.materialCache.clear();
     
-    // Dispose of cached geometries
-    this.loadedModels.forEach(geometry => geometry.dispose());
+    // Dispose of cached models
+    this.loadedModels.forEach(model => {
+      model.geometry.dispose();
+      model.materials.forEach(material => material.dispose());
+    });
     this.loadedModels.clear();
     
     // Clean up UI scene

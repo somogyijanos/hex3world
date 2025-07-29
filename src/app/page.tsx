@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { HexWorldRenderer } from '@/renderer/HexWorldRenderer';
 import { AssetPackManager } from '@/core/AssetPackManager';
-import { WorldManager } from '@/core/WorldManager';
 
 export default function HexWorldPage() {
   const rendererRef = useRef<HTMLDivElement>(null);
@@ -19,7 +18,8 @@ export default function HexWorldPage() {
 
     try {
       const assetMgr = new AssetPackManager();
-      const worldMgr = new WorldManager(assetMgr);
+      // WorldManager not needed for this demo, but could be used for world validation
+      // const worldMgr = new WorldManager(assetMgr);
       
       await assetMgr.loadAssetPackFromUrl('/assets/demo-pack.json');
       
@@ -35,7 +35,7 @@ export default function HexWorldPage() {
       
       return true;
     } catch (error: unknown) {
-      console.error('Failed to initialize renderer');
+      console.error('Failed to initialize renderer:', error);
       return false;
     }
   };
@@ -54,7 +54,7 @@ export default function HexWorldPage() {
       setIsLoading(false);
       
     } catch (error: unknown) {
-      console.error('Failed to load world');
+      console.error('Failed to load world:', error);
     }
   };
 

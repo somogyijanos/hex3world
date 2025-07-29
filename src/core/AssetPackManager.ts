@@ -18,7 +18,7 @@ export class AssetPackManager {
 
   // For web applications, use loadAssetPackFromUrl() instead
   async loadAssetPackFromFile(filePath: string): Promise<AssetPack> {
-    throw new AssetPackValidationError('File system operations not available in browser environment. Use loadAssetPackFromUrl() instead.');
+    throw new AssetPackValidationError(`File system operations not available in browser environment. Cannot load from ${filePath}. Use loadAssetPackFromUrl() instead.`);
   }
 
   /**

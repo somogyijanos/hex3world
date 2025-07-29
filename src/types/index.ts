@@ -17,12 +17,6 @@ export interface EdgeTypes {
 }
 
 // Tile Definition
-export interface PlacementRules {
-  incompatible_neighbors?: string[];
-  required_elevation_range?: [number, number];
-  required_tile_tags?: string[];
-}
-
 export interface TileDefinition {
   id: string;
   model: string;
@@ -30,7 +24,6 @@ export interface TileDefinition {
   tags: string[];
   edges: [string, string, string, string, string, string]; // 6 edge types (clockwise from top-right)
   vertices: [string[], string[], string[], string[], string[], string[]]; // 6 vertex material arrays
-  placement_rules?: PlacementRules;
 }
 
 // Add-on Definition
@@ -84,18 +77,8 @@ export interface World {
   addons: WorldAddOn[];
 }
 
-// Hex Coordinate System
+// Hex Coordinate System (simplified)
 export interface AxialCoordinate {
   q: number;
   r: number;
 }
-
-export interface CubeCoordinate {
-  x: number;
-  y: number;
-  z: number;
-}
-
-// Utility types
-export type EdgeIndex = 0 | 1 | 2 | 3 | 4 | 5;
-export type VertexIndex = 0 | 1 | 2 | 3 | 4 | 5;
