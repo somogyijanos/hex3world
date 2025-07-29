@@ -154,7 +154,13 @@
           "tile_type": { "type": "string" },
           "q": { "type": "integer" },
           "r": { "type": "integer" },
-          "elevation": { "type": "number" }
+          "elevation": { "type": "number" },
+          "rotation": { 
+            "type": "integer", 
+            "minimum": 0, 
+            "maximum": 5,
+            "description": "Tile rotation in 60-degree steps. 0=0°, 1=60°, 2=120°, 3=180°, 4=240°, 5=300°. Defaults to 0 if omitted."
+          }
         }
       }
     },

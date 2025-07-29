@@ -91,6 +91,16 @@ export class WorldManager {
       throw new WorldValidationError(`tiles[${index}].elevation must be a number`, `tiles[${index}].elevation`);
     }
 
+    // Validate optional rotation field
+    if (tile.rotation !== undefined) {
+      if (typeof tile.rotation !== 'number' || !Number.isInteger(tile.rotation)) {
+        throw new WorldValidationError(`tiles[${index}].rotation must be an integer`, `tiles[${index}].rotation`);
+      }
+      if (tile.rotation < 0 || tile.rotation > 5) {
+        throw new WorldValidationError(`tiles[${index}].rotation must be between 0 and 5 (inclusive)`, `tiles[${index}].rotation`);
+      }
+    }
+
     // Validate tile_type exists in asset pack
     const tileDefinition = pack.tiles.find(t => t.id === tile.tile_type);
     if (!tileDefinition) {

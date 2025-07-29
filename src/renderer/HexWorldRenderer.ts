@@ -785,6 +785,21 @@ export class HexWorldRenderer {
       const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
       mesh.position.copy(position);
       
+      // Apply rotation if specified (in 60-degree increments)
+      const rotation = worldTile.rotation || 0;
+      if (rotation > 0) {
+        const rotationRadians = (rotation * Math.PI) / 3; // 60 degrees = π/3 radians
+        const rotationAxis = this.getTileRotationAxis(assetPack);
+        
+        if (rotationAxis === 'x') {
+          mesh.rotation.x = rotationRadians;
+        } else if (rotationAxis === 'y') {
+          mesh.rotation.y = rotationRadians;
+        } else if (rotationAxis === 'z') {
+          mesh.rotation.z = rotationRadians;
+        }
+      }
+      
       // Add to world group
       this.worldGroup.add(mesh);
       
@@ -795,6 +810,39 @@ export class HexWorldRenderer {
     } catch (error) {
       console.error(`Failed to render tile ${worldTile.tile_type}:`, error);
     }
+  }
+
+  /**
+   * Determine which axis to rotate around in Three.js coordinate system
+   * based on the asset pack's tile_up_axis configuration
+   */
+  private getTileRotationAxis(assetPack: AssetPack): 'x' | 'y' | 'z' {
+    const config = assetPack.geometry_config;
+    if (!config) {
+      return 'y'; // Default to Y-axis (Three.js standard)
+    }
+
+    const upAxisChar = config.tile_up_axis[0] as 'x' | 'y' | 'z';
+    
+    // Since models are transformed to Three.js coordinate system (Y-up),
+    // we need to determine which axis in Three.js space corresponds to
+    // the original rotation axis in the asset pack coordinate system
+    
+    if (upAxisChar === 'z') {
+      // Asset pack is Z-up, transformed to Y-up in Three.js
+      // Rotation around Z in asset pack = rotation around Y in Three.js
+      return 'y';
+    } else if (upAxisChar === 'y') {
+      // Asset pack is already Y-up, no transformation needed
+      // Rotation around Y in asset pack = rotation around Y in Three.js
+      return 'y';
+    } else if (upAxisChar === 'x') {
+      // Asset pack is X-up, transformed to Y-up in Three.js
+      // Rotation around X in asset pack = rotation around Y in Three.js
+      return 'y';
+    }
+    
+    return 'y'; // Default fallback
   }
 
   private async renderAddon(worldAddon: WorldAddOn, assetPack: AssetPack, world: World): Promise<void> {

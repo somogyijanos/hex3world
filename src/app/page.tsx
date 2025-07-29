@@ -15,6 +15,7 @@ import { Loader2, Settings, X, RotateCcw } from 'lucide-react';
 const AVAILABLE_WORLDS = [
   { id: 'demo-world', name: 'Demo World', url: '/assets/worlds/demo-world.json' },
   { id: 'medieval-village-world', name: 'Medieval Village World', url: '/assets/worlds/medieval-village-world.json' },
+  { id: 'grass-road-loop-world', name: 'Grass Road Loop World', url: '/assets/worlds/grass-road-loop-world.json' },
   // Add more worlds here as they become available
   // { id: 'custom-world', name: 'Custom World', url: '/assets/worlds/custom-world.json' }
 ];

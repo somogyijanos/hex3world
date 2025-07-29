@@ -70,6 +70,7 @@ export interface WorldTile {
   q: number; // axial coordinate
   r: number; // axial coordinate  
   elevation: number;
+  rotation?: number; // rotation in 60-degree steps (0-5), defaults to 0. 0=0°, 1=60°, 2=120°, etc.
 }
 
 export interface WorldAddOn {

@@ -74,6 +74,20 @@
       "elevation": 0
     },
     {
+      "tile_type": "shore-tile",
+      "q": 2,
+      "r": 1,
+      "elevation": 0,
+      "rotation": 3
+    },
+    {
+      "tile_type": "shore-tile", 
+      "q": 0,
+      "r": 2,
+      "elevation": 0,
+      "rotation": 4
+    },
+    {
       "tile_type": "road-straight",
       "q": -1,
       "r": -1,

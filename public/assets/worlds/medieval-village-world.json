@@ -83,13 +83,15 @@
         "tile_type": "road-straight-a",
         "q": -1,
         "r": -1,
-        "elevation": 0
+        "elevation": 0,
+        "rotation": 1
       },
       {
         "tile_type": "road-curve-b",
         "q": 0,
         "r": -2,
-        "elevation": 0
+        "elevation": 0,
+        "rotation": 2
       },
       {
         "tile_type": "road-straight-a",
@@ -101,43 +103,50 @@
         "tile_type": "road-end-m",
         "q": 2,
         "r": -2,
-        "elevation": 0
+        "elevation": 0,
+        "rotation": 2
       },
       {
         "tile_type": "river-straight-a",
         "q": 3,
         "r": -1,
-        "elevation": -0.1
+        "elevation": -0.1,
+        "rotation": 1
       },
       {
         "tile_type": "river-curve-b",
         "q": 3,
         "r": 0,
-        "elevation": -0.1
+        "elevation": -0.1,
+        "rotation": 2
       },
       {
         "tile_type": "river-curve-curvy-a",
         "q": 2,
         "r": 1,
-        "elevation": -0.1
+        "elevation": -0.1,
+        "rotation": 2
       },
       {
         "tile_type": "river-straight-a",
         "q": 1,
         "r": 2,
-        "elevation": -0.1
+        "elevation": -0.1,
+        "rotation": 2
       },
       {
         "tile_type": "coast-a",
         "q": 0,
         "r": 2,
-        "elevation": 0
+        "elevation": 0,
+        "rotation": 0
       },
       {
         "tile_type": "coast-b",
         "q": -1,
         "r": 3,
-        "elevation": 0
+        "elevation": 0,
+        "rotation": 1
       },
       {
         "tile_type": "hex-water",
@@ -168,7 +177,7 @@
         "q": -3,
         "r": 0,
         "elevation": 0,
-        "rotation": 30
+        "rotation": 3
       },
       {
         "tile_type": "hex-grass-sloped-low",
