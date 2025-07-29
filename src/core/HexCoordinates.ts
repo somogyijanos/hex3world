@@ -1,4 +1,4 @@
-import { AxialCoordinate, CubeCoordinate, EdgeIndex } from '../types/index.js';
+import { AxialCoordinate, CubeCoordinate, EdgeIndex } from '../types/index';
 
 export class HexCoordinates {
   /**

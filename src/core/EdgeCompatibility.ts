@@ -1,4 +1,4 @@
-import { AssetPack, TileDefinition, EdgeTypes, EdgeIndex } from '../types/index.js';
+import { AssetPack, TileDefinition, EdgeTypes, EdgeIndex } from '../types/index';
 
 export interface EdgeCompatibilityResult {
   compatible: boolean;

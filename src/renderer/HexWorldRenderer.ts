@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { World, AssetPack, GeometryConfig } from '../types/index.js';
-import { AssetPackManager } from '../core/AssetPackManager.js';
-import { HexCoordinates } from '../core/HexCoordinates.js';
+import { World, AssetPack, GeometryConfig } from '../types/index';
+import { AssetPackManager } from '../core/AssetPackManager';
+import { HexCoordinates } from '../core/HexCoordinates';
 
 export interface RendererConfig {
   container: HTMLElement;
@@ -677,21 +677,18 @@ export class HexWorldRenderer {
       console.log(`✅ TILE ADDED TO SCENE\n`);
       
     } catch (error) {
-      console.error(`Failed to render tile ${worldTile.tile_type}:`, error);
+      console.error(`❌ FAILED TO RENDER TILE ${worldTile.tile_type}:`, error);
+      console.error(`📁 Missing asset: ${tileDefinition.model}`);
+      console.error(`💡 Please check that the 3D model file exists in public/assets/models/`);
       
-      // Fallback: create a simple hex shape (already in Three.js coordinate system)
-      const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 6);
-      const material = this.getMaterial(tileDefinition.base_material);
-      const mesh = new THREE.Mesh(geometry, material);
-      
-      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
-      mesh.position.copy(position);
-      
-      this.worldGroup.add(mesh);
-      
-      // Cache the fallback tile mesh too
+      // Don't add anything to the scene - let the user know there's a problem
+      // Cache an empty entry so addons know this tile position exists
       const tileKey = `${worldTile.q},${worldTile.r}`;
-      this.placedTileMeshes.set(tileKey, mesh);
+      // We still need to track tile positions for addon placement, so create an invisible placeholder
+      const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
+      const placeholder = new THREE.Object3D();
+      placeholder.position.copy(position);
+      this.placedTileMeshes.set(tileKey, placeholder as any);
     }
   }
 
@@ -849,7 +846,11 @@ export class HexWorldRenderer {
       this.worldGroup.add(mesh);
       
     } catch (error) {
-      console.error(`Failed to render addon ${worldAddon.addon_id}:`, error);
+      console.error(`❌ FAILED TO RENDER ADDON ${worldAddon.addon_id}:`, error);
+      console.error(`📁 Missing asset: ${addonDefinition.model}`);
+      console.error(`💡 Please check that the 3D model file exists in public/assets/models/`);
+      
+      // Don't add anything to the scene - let the user know there's a problem
     }
   }
 

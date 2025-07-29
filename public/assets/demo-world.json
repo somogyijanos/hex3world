@@ -1,0 +1,131 @@
+{
+  "asset_pack": "demo-pack",
+  "tiles": [
+    {
+      "tile_type": "grass-tile",
+      "q": 0,
+      "r": 0,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": 1,
+      "r": 0,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": 0,
+      "r": 1,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": -1,
+      "r": 1,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": -1,
+      "r": 0,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": 0,
+      "r": -1,
+      "elevation": 0
+    },
+    {
+      "tile_type": "grass-tile",
+      "q": 1,
+      "r": -1,
+      "elevation": 0
+    },
+    {
+      "tile_type": "water-tile",
+      "q": 2,
+      "r": 0,
+      "elevation": -0.1
+    },
+    {
+      "tile_type": "water-tile",
+      "q": 2,
+      "r": -1,
+      "elevation": -0.1
+    },
+    {
+      "tile_type": "water-tile",
+      "q": 1,
+      "r": 1,
+      "elevation": -0.1
+    },
+    {
+      "tile_type": "shore-tile",
+      "q": 1,
+      "r": -2,
+      "elevation": 0
+    },
+    {
+      "tile_type": "sand-tile",
+      "q": 0,
+      "r": -2,
+      "elevation": 0
+    },
+    {
+      "tile_type": "road-straight",
+      "q": -1,
+      "r": -1,
+      "elevation": 0
+    },
+    {
+      "tile_type": "road-straight",
+      "q": -2,
+      "r": 0,
+      "elevation": 0
+    }
+  ],
+  "addons": [
+    {
+      "addon_id": "tree-simple",
+      "q": 0,
+      "r": 0,
+      "local_position": [0.3, 0.2, 0],
+      "local_rotation": 0,
+      "local_scale": 1.0
+    },
+    {
+      "addon_id": "tree-simple",
+      "q": 1,
+      "r": 0,
+      "local_position": [-0.2, 0.4, 0],
+      "local_rotation": 45,
+      "local_scale": 0.8
+    },
+    {
+      "addon_id": "rock-small",
+      "q": 0,
+      "r": 1,
+      "local_position": [0.1, -0.3, 0],
+      "local_rotation": 0,
+      "local_scale": 1.2
+    },
+    {
+      "addon_id": "tree-simple",
+      "q": -1,
+      "r": 1,
+      "local_position": [0, 0, 0],
+      "local_rotation": 90,
+      "local_scale": 1.1
+    },
+    {
+      "addon_id": "rock-small",
+      "q": 0,
+      "r": -2,
+      "local_position": [-0.4, 0.1, 0],
+      "local_rotation": 0,
+      "local_scale": 0.9
+    }
+  ]
+}

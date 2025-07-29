@@ -1,4 +1,4 @@
-import { AssetPack, TileDefinition, AddOnDefinition, EdgeTypes } from '../types/index.js';
+import { AssetPack, TileDefinition, AddOnDefinition, EdgeTypes } from '../types/index';
 
 export class AssetPackValidationError extends Error {
   constructor(message: string, public readonly field?: string) {
@@ -16,14 +16,24 @@ export class AssetPackManager {
     return pack;
   }
 
+  // For web applications, use loadAssetPackFromUrl() instead
   async loadAssetPackFromFile(filePath: string): Promise<AssetPack> {
+    throw new AssetPackValidationError('File system operations not available in browser environment. Use loadAssetPackFromUrl() instead.');
+  }
+
+  /**
+   * Load asset pack from URL (recommended for web applications)
+   */
+  async loadAssetPackFromUrl(url: string): Promise<AssetPack> {
     try {
-      const fs = await import('fs/promises');
-      const content = await fs.readFile(filePath, 'utf-8');
-      const packData = JSON.parse(content);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const packData = await response.json();
       return this.loadAssetPack(packData);
     } catch (error) {
-      throw new AssetPackValidationError(`Failed to load asset pack from ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new AssetPackValidationError(`Failed to load asset pack from ${url}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

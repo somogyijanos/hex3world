@@ -1,6 +1,6 @@
-import { World, WorldTile, WorldAddOn, AssetPack, AxialCoordinate } from '../types/index.js';
-import { AssetPackManager } from './AssetPackManager.js';
-import { HexCoordinates } from './HexCoordinates.js';
+import { World, WorldTile, WorldAddOn, AssetPack, AxialCoordinate } from '../types/index';
+import { AssetPackManager } from './AssetPackManager';
+import { HexCoordinates } from './HexCoordinates';
 
 export class WorldValidationError extends Error {
   constructor(message: string, public readonly field?: string) {
@@ -293,15 +293,26 @@ export class WorldManager {
   }
 
   /**
-   * Load world from file
+   * Load world from file (server-side only)
+   * For web applications, use loadWorldFromUrl() instead
    */
   async loadWorldFromFile(filePath: string): Promise<World> {
+    throw new WorldValidationError('File system operations not available in browser environment. Use loadWorldFromUrl() instead.');
+  }
+
+  /**
+   * Load world from URL (recommended for web applications)
+   */
+  async loadWorldFromUrl(url: string): Promise<World> {
     try {
-      const fs = await import('fs/promises');
-      const content = await fs.readFile(filePath, 'utf-8');
-      return this.loadWorldFromJson(content);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+             const content = await response.text();
+       return this.loadWorldFromJson(content);
     } catch (error) {
-      throw new WorldValidationError(`Failed to load world from ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new WorldValidationError(`Failed to load world from ${url}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

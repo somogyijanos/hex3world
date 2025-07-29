@@ -1,0 +1,107 @@
+{
+  "id": "demo-pack",
+  "name": "Simple Demo Pack",
+  "version": "1.0.0",
+  "description": "Basic demo asset pack with simple 3D STL models",
+  "geometry_config": {
+    "tile_up_axis": "z+",
+    "parallel_edge_direction": "y+"
+  },
+  "materials": [
+    "grass",
+    "water", 
+    "sand",
+    "stone",
+    "road"
+  ],
+  "edge_types": {
+    "grass": {
+      "materials": ["grass"]
+    },
+    "water": {
+      "materials": ["water"]
+    },
+    "sand": {
+      "materials": ["sand"]
+    },
+    "stone": {
+      "materials": ["stone"]
+    },
+    "road": {
+      "materials": ["road"],
+      "compatible_with": ["road"]
+    },
+    "grass-water": {
+      "materials": ["grass", "water"]
+    },
+    "grass-sand": {
+      "materials": ["grass", "sand"]
+    }
+  },
+  "tiles": [
+    {
+      "id": "grass-tile",
+      "model": "models/grass_hex.stl",
+      "base_material": "grass",
+      "tags": ["walkable", "natural"],
+      "edges": ["grass", "grass", "grass", "grass", "grass", "grass"],
+      "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+    },
+    {
+      "id": "water-tile",
+      "model": "models/water_hex.stl",
+      "base_material": "water",
+      "tags": ["water", "natural"],
+      "edges": ["water", "water", "water", "water", "water", "water"],
+      "vertices": [["water"], ["water"], ["water"], ["water"], ["water"], ["water"]]
+    },
+    {
+      "id": "sand-tile",
+      "model": "models/sand_hex.stl",
+      "base_material": "sand", 
+      "tags": ["walkable", "natural"],
+      "edges": ["sand", "sand", "sand", "sand", "sand", "sand"],
+      "vertices": [["sand"], ["sand"], ["sand"], ["sand"], ["sand"], ["sand"]]
+    },
+    {
+      "id": "road-straight",
+      "model": "models/road_hex.stl",
+      "base_material": "grass",
+      "tags": ["walkable", "transport"],
+      "edges": ["grass", "road", "grass", "grass", "road", "grass"],
+      "vertices": [["grass"], ["grass", "road"], ["grass"], ["grass"], ["grass", "road"], ["grass"]]
+    },
+    {
+      "id": "shore-tile",
+      "model": "models/shore_hex.stl",
+      "base_material": "sand",
+      "tags": ["walkable", "shore"],
+      "edges": ["sand", "sand", "water", "water", "sand", "sand"],
+      "vertices": [["sand"], ["sand"], ["sand", "water"], ["water"], ["sand", "water"], ["sand"]]
+    }
+  ],
+  "addons": [
+    {
+      "id": "tree-simple",
+      "model": "models/simple_tree.stl",
+      "tags": ["tree", "nature"],
+      "placement": {
+        "tile_tags": ["walkable", "natural"],
+        "local_position": [0, 0, 0],
+        "local_rotation": 0,
+        "local_scale": 1.0
+      }
+    },
+    {
+      "id": "rock-small",
+      "model": "models/small_rock.stl",
+      "tags": ["rock", "nature"],
+      "placement": {
+        "tile_tags": ["walkable", "natural"],
+        "local_position": [0, 0, 0],
+        "local_rotation": 0,
+        "local_scale": 1.0
+      }
+    }
+  ]
+}
