@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { World, AssetPack } from '../types/index.js';
 import { AssetPackManager } from '../core/AssetPackManager.js';
 import { HexCoordinates } from '../core/HexCoordinates.js';
@@ -15,7 +17,7 @@ export class HexWorldRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private controls?: any; // OrbitControls type
+  private controls?: OrbitControls;
   private assetPackManager: AssetPackManager;
   private loadedModels = new Map<string, THREE.BufferGeometry>();
   private materialCache = new Map<string, THREE.Material>();
@@ -100,7 +102,6 @@ export class HexWorldRenderer {
 
   private async setupControls(): Promise<void> {
     try {
-      const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.05;
@@ -183,13 +184,12 @@ export class HexWorldRenderer {
     }
 
     try {
-      const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
       const loader = new STLLoader();
       
       return new Promise((resolve, reject) => {
         loader.load(
           modelPath,
-          (geometry) => {
+          (geometry: THREE.BufferGeometry) => {
             console.log(`\n🔧 LOADING STL MODEL: ${modelPath}`);
             
             // Debug original geometry bounds
@@ -272,11 +272,11 @@ export class HexWorldRenderer {
     
     if (config.tile_up_axis === 'z+') {
       console.log(`  🔄 TRANSFORM: Pack uses Z-up → Three.js uses Y-up`);
-      console.log(`  🔄 APPLYING: +90° rotation around X-axis`);
-      console.log(`     This should rotate XY plane (flat) → XZ plane (standing up)`);
-      console.log(`     Before: Flat on XY plane, After: Should be flat on XZ plane`);
+      console.log(`  🔄 APPLYING: -90° rotation around X-axis`);
+      console.log(`     This should rotate Z-up → Y-up (fix upside-down issue)`);
+      console.log(`     Before: Z points up, After: Y points up`);
       
-      geometry.rotateX(Math.PI / 2);
+      geometry.rotateX(-Math.PI / 2);
       
       console.log(`  ✅ ROTATION APPLIED`);
     } else if (config.tile_up_axis === 'y+') {
@@ -377,7 +377,7 @@ export class HexWorldRenderer {
 
     // Render addons
     for (const worldAddon of world.addons) {
-      await this.renderAddon(worldAddon, assetPack);
+      await this.renderAddon(worldAddon, assetPack, world);
     }
 
     // Reset world group transformations (no longer needed)
@@ -438,7 +438,7 @@ export class HexWorldRenderer {
     }
   }
 
-  private async renderAddon(worldAddon: any, assetPack: AssetPack): Promise<void> {
+  private async renderAddon(worldAddon: any, assetPack: AssetPack, world: World): Promise<void> {
     const addonDefinition = assetPack.addons.find(a => a.id === worldAddon.addon_id);
     if (!addonDefinition) {
       console.warn(`Addon definition '${worldAddon.addon_id}' not found`);
@@ -463,8 +463,41 @@ export class HexWorldRenderer {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.castShadow = true;
       
-      // Position the addon in Three.js coordinate system
-      const tilePosition = this.hexToThreeJSPosition(worldAddon.q, worldAddon.r, 0);
+      // Find the tile this addon is placed on to get its elevation and type
+      const tile = world.tiles.find(t => t.q === worldAddon.q && t.r === worldAddon.r);
+      const tileElevation = tile ? tile.elevation : 0;
+      
+      // Get tile definition and calculate actual tile height
+      const tileDefinition = tile ? assetPack.tiles.find(t => t.id === tile.tile_type) : null;
+      let tileHeight = 0;
+      
+      if (tileDefinition) {
+        try {
+          // Load the tile geometry to get its actual height
+          const tileGeometry = await this.loadSTLModel(`assets/${tileDefinition.model}`, assetPack);
+          tileGeometry.computeBoundingBox();
+          if (tileGeometry.boundingBox) {
+            // Get the height (Y dimension in Three.js coordinate system after transformation)
+            tileHeight = tileGeometry.boundingBox.max.y - tileGeometry.boundingBox.min.y;
+            console.log(`📏 Calculated tile height for ${tileDefinition.id}: ${tileHeight.toFixed(3)}`);
+          }
+        } catch (error) {
+          console.warn(`Failed to calculate tile height for ${tileDefinition.id}, using default`);
+          tileHeight = 0.1; // Fallback
+        }
+      }
+      
+      // Position the addon at the tile's base position first
+      const tileBasePosition = this.hexToThreeJSPosition(worldAddon.q, worldAddon.r, tileElevation);
+      
+      // Create the tile surface position by adding the tile height to Y coordinate
+      const tilePosition = new THREE.Vector3(
+        tileBasePosition.x,
+        tileBasePosition.y + tileHeight, // Add tile height to Y to get surface position
+        tileBasePosition.z
+      );
+      
+      console.log(`📍 Add-on positioning: base Y=${tileBasePosition.y.toFixed(3)}, tile height=${tileHeight.toFixed(3)}, surface Y=${tilePosition.y.toFixed(3)}`);
       
       // Apply local position offset in Three.js coordinate system
       // Convert pack-relative offsets to Three.js coordinate system
@@ -472,9 +505,10 @@ export class HexWorldRenderer {
       let offsetX, offsetY, offsetZ;
       
       if (config?.tile_up_axis === 'z+') {
-        // Pack coordinates: [x, y, z] -> Three.js coordinates: [x, z, y]
+        // Pack coordinates: [x, y, z] -> Three.js coordinates: [x, -z, y]
+        // Note: With -90° X rotation, pack Y becomes Three.js Z, pack Z becomes Three.js -Y
         offsetX = worldAddon.local_position[0];
-        offsetY = worldAddon.local_position[2]; // Pack Z becomes Three.js Y
+        offsetY = -worldAddon.local_position[2]; // Pack Z becomes Three.js -Y (due to -90° rotation)
         offsetZ = worldAddon.local_position[1]; // Pack Y becomes Three.js Z
       } else {
         // Pack already uses Y-up like Three.js
