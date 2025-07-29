@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { World, AssetPack, GeometryConfig, WorldTile, WorldAddOn } from '../types/index';
 import { AssetPackManager } from '../core/AssetPackManager';
@@ -371,9 +372,11 @@ export class HexWorldRenderer {
     }
 
     try {
-      // For now we only support STL, but this structure prepares for other formats
-      if (modelPath.toLowerCase().endsWith('.stl')) {
+      const lowerPath = modelPath.toLowerCase();
+      if (lowerPath.endsWith('.stl')) {
         return await this.loadSTLModel(modelPath, assetPack);
+      } else if (lowerPath.endsWith('.gltf') || lowerPath.endsWith('.glb')) {
+        return await this.loadGLTFModel(modelPath, assetPack);
       } else {
         throw new Error(`Unsupported model format: ${modelPath}`);
       }
@@ -444,6 +447,81 @@ export class HexWorldRenderer {
       });
     } catch (error) {
       console.error(`Error loading STL model: ${modelPath}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load GLTF/GLB model and return geometry with included materials
+   * GLTF format can include materials, textures, animations, etc.
+   */
+  private async loadGLTFModel(modelPath: string, assetPack: AssetPack): Promise<LoadedModel> {
+    const cacheKey = `${modelPath}_${assetPack.id}`;
+
+    try {
+      const loader = new GLTFLoader();
+      
+      return new Promise((resolve, reject) => {
+        loader.load(
+          modelPath,
+          (gltf) => {
+            // Extract all meshes from the GLTF scene
+            const meshes: THREE.Mesh[] = [];
+            gltf.scene.traverse((child) => {
+              if (child instanceof THREE.Mesh) {
+                meshes.push(child);
+              }
+            });
+
+            if (meshes.length === 0) {
+              reject(new Error(`No meshes found in GLTF model: ${modelPath}`));
+              return;
+            }
+
+            // For now, use the first mesh's geometry and collect all materials
+            const primaryMesh = meshes[0];
+            const geometry = primaryMesh.geometry.clone();
+            
+            // Collect all materials from all meshes
+            const materials: THREE.Material[] = [];
+            meshes.forEach(mesh => {
+              if (mesh.material) {
+                if (Array.isArray(mesh.material)) {
+                  materials.push(...mesh.material);
+                } else {
+                  materials.push(mesh.material);
+                }
+              }
+            });
+
+            // Apply coordinate system transformation if pack config exists
+            this.transformModelToThreeJS(geometry, assetPack);
+            
+            // Update bounding box after transformation
+            geometry.computeBoundingBox();
+            
+            const loadedModel: LoadedModel = {
+              geometry: geometry.clone(),
+              materials: [...materials] // Include GLTF materials
+            };
+            
+            this.loadedModels.set(cacheKey, loadedModel);
+            resolve({
+              geometry: geometry,
+              materials: [...materials]
+            });
+          },
+          () => {
+            // Loading progress - could add progress indicator here
+          },
+          (error) => {
+            console.error(`Failed to load GLTF model: ${modelPath}`, error);
+            reject(error);
+          }
+        );
+      });
+    } catch (error) {
+      console.error(`Error loading GLTF model: ${modelPath}`, error);
       throw error;
     }
   }

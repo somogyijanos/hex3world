@@ -13,9 +13,10 @@ import { Loader2, Settings, X } from 'lucide-react';
 
 // Available worlds for selection
 const AVAILABLE_WORLDS = [
-  { id: 'demo-world', name: 'Demo World', url: '/assets/demo-world.json' },
+  { id: 'demo-world', name: 'Demo World', url: '/assets/worlds/demo-world.json' },
+  { id: 'medieval-village-world', name: 'Medieval Village World', url: '/assets/worlds/medieval-village-world.json' },
   // Add more worlds here as they become available
-  // { id: 'custom-world', name: 'Custom World', url: '/assets/custom-world.json' }
+  // { id: 'custom-world', name: 'Custom World', url: '/assets/worlds/custom-world.json' }
 ];
 
 // Preset camera views
@@ -57,7 +58,7 @@ export default function HexWorldPage() {
       // WorldManager not needed for this demo, but could be used for world validation
       // const worldMgr = new WorldManager(assetMgr);
       
-      await assetMgr.loadAssetPackFromUrl('/assets/demo-pack.json');
+      // Don't load any asset pack here - will be loaded dynamically based on world
       
       const hexRenderer = new HexWorldRenderer({
         container: container,
@@ -99,6 +100,22 @@ export default function HexWorldPage() {
       // Validate that the world data has the expected structure
       if (!worldData.asset_pack || !Array.isArray(worldData.tiles)) {
         throw new Error(`Invalid world data format in '${world.name}'`);
+      }
+      
+      // Load the required asset pack if not already loaded
+      const requiredAssetPack = worldData.asset_pack;
+      if (!assetManagerRef.current!.getAssetPack(requiredAssetPack)) {
+        console.log(`Loading required asset pack: ${requiredAssetPack}`);
+        const assetPackUrl = `/assets/packs/${requiredAssetPack}.json`;
+        try {
+          const loadedPack = await assetManagerRef.current!.loadAssetPackFromUrl(assetPackUrl);
+          console.log(`Asset pack loaded successfully: ${loadedPack.id}, now checking if it's available: ${assetManagerRef.current!.getAssetPack(requiredAssetPack) ? 'YES' : 'NO'}`);
+        } catch (packError) {
+          console.error(`Failed to load asset pack from ${assetPackUrl}:`, packError);
+          throw new Error(`Cannot load required asset pack '${requiredAssetPack}': ${packError instanceof Error ? packError.message : String(packError)}`);
+        }
+      } else {
+        console.log(`Asset pack ${requiredAssetPack} already loaded`);
       }
       
       await hexRendererRef.current!.renderWorld(worldData);
