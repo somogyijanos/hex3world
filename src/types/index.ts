@@ -2,9 +2,16 @@
 
 // Geometry Configuration
 export interface GeometryConfig {
-  tile_up_axis: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
-  parallel_edge_direction: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
+  tile_up_axis: string;
+  parallel_edge_direction: string;
   tile_circumradius: number; // Distance from center to vertex (defines hex size)
+}
+
+// Placement configuration for add-ons
+export type PlacementMethod = 'bounding_box' | 'model_coordinates';
+
+export interface PlacementConfig {
+  default_addon_placement_method?: PlacementMethod;
 }
 
 // Edge Types
@@ -33,6 +40,7 @@ export interface AddOnPlacement {
   local_position: [number, number, number]; // [x, y, z] offset from tile center
   local_rotation: number; // degrees
   local_scale: number;
+  placement_method?: PlacementMethod; // Override pack default
 }
 
 export interface AddOnDefinition {
@@ -49,6 +57,7 @@ export interface AssetPack {
   version: string;
   description: string;
   geometry_config: GeometryConfig;
+  placement_config?: PlacementConfig;
   materials: string[];
   edge_types: EdgeTypes;
   tiles: TileDefinition[];

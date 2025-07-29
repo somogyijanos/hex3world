@@ -8,6 +8,9 @@
     "parallel_edge_direction": "y+",
     "tile_circumradius": 1.0
   },
+  "placement_config": {
+    "default_addon_placement_method": "bounding_box"
+  },
   "materials": [
     "grass",
     "water", 

@@ -84,6 +84,17 @@
         }
       }
     },
+    "placement_config": {
+      "type": "object",
+      "properties": {
+        "default_addon_placement_method": {
+          "type": "string",
+          "enum": ["bounding_box", "model_coordinates"],
+          "default": "bounding_box",
+          "description": "Default method for placing add-ons. 'bounding_box' uses bounding box alignment (bottom of addon on tile top). 'model_coordinates' assumes addon is already correctly positioned in model space."
+        }
+      }
+    },
     "addons": {
       "type": "array",
       "items": {
@@ -111,7 +122,12 @@
                 "maxItems": 3
               },
               "local_rotation": { "type": "number" },
-              "local_scale": { "type": "number" }
+              "local_scale": { "type": "number" },
+              "placement_method": {
+                "type": "string",
+                "enum": ["bounding_box", "model_coordinates"],
+                "description": "Override the pack's default placement method for this specific add-on"
+              }
             }
           }
         }

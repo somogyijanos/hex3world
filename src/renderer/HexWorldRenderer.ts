@@ -880,20 +880,33 @@ export class HexWorldRenderer {
       const offsetY = threeJSLocalPos.y;
       const offsetZ = threeJSLocalPos.z;
       
-      // CORRECT APPROACH: Position add-on so its BOTTOM sits on tile TOP
-      // First, we need to find the add-on's bounding box to know where its bottom is
-      loadedModel.geometry.computeBoundingBox();
-      const addonBBox = loadedModel.geometry.boundingBox!;
+      // Determine which placement method to use
+      const defaultMethod = assetPack.placement_config?.default_addon_placement_method || 'bounding_box';
+      const placementMethod = addonDefinition.placement.placement_method || defaultMethod;
+      console.log(`Placement method: ${placementMethod}`);
       
-      // Calculate the Y position so that add-on bottom = tile top
-      // If add-on center is at position.y, then add-on bottom is at position.y + addonBBox.min.y
-      // We want: position.y + addonBBox.min.y = tileSurfacePosition.y
-      // So: position.y = tileSurfacePosition.y - addonBBox.min.y
-      const correctY = tileSurfacePosition.y - addonBBox.min.y + offsetY;
+      let finalY: number;
+      
+      if (placementMethod === 'model_coordinates') {
+        // Model coordinates method: assume addon is already correctly positioned
+        // Just use the tile surface position + local Y offset
+        finalY = tileSurfacePosition.y + offsetY;
+      } else {
+        // Bounding box method (default): Position add-on so its bottom sits on tile top
+        // First, we need to find the add-on's bounding box to know where its bottom is
+        loadedModel.geometry.computeBoundingBox();
+        const addonBBox = loadedModel.geometry.boundingBox!;
+        
+        // Calculate the Y position so that add-on bottom = tile top
+        // If add-on center is at position.y, then add-on bottom is at position.y + addonBBox.min.y
+        // We want: position.y + addonBBox.min.y = tileSurfacePosition.y
+        // So: position.y = tileSurfacePosition.y - addonBBox.min.y
+        finalY = tileSurfacePosition.y - addonBBox.min.y + offsetY;
+      }
       
       mesh.position.set(
         tileSurfacePosition.x + offsetX,
-        correctY,
+        finalY,
         tileSurfacePosition.z + offsetZ
       );
       

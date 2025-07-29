@@ -8,6 +8,9 @@
       "parallel_edge_direction": "z+",
       "tile_circumradius": 1.1547005383
     },
+    "placement_config": {
+      "default_addon_placement_method": "model_coordinates"
+    },
     "materials": [
       "grass",
       "water",

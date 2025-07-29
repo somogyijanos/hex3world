@@ -57,24 +57,39 @@ export class AssetPackManager {
 
   private validateAssetPack(data: unknown): AssetPack {
     if (!data || typeof data !== 'object') {
-      throw new AssetPackValidationError('Asset pack must be an object');
+      throw new AssetPackValidationError('Asset pack data must be an object', 'root');
     }
 
     const pack = data as Record<string, unknown>;
 
-    // Validate required fields (based on JSON Schema)
+    // Validate required fields
     this.validateRequired(pack, 'id', 'string');
     this.validateRequired(pack, 'name', 'string');
     this.validateRequired(pack, 'version', 'string');
-    // description is optional in schema
     this.validateRequired(pack, 'geometry_config', 'object');
     this.validateRequired(pack, 'materials', 'object');
     this.validateRequired(pack, 'edge_types', 'object');
     this.validateRequired(pack, 'tiles', 'object');
     this.validateRequired(pack, 'addons', 'object');
 
-    // Validate geometry config
+    // Validate arrays
+    if (!Array.isArray(pack.materials)) {
+      throw new AssetPackValidationError('materials must be an array', 'materials');
+    }
+    if (!Array.isArray(pack.tiles)) {
+      throw new AssetPackValidationError('tiles must be an array', 'tiles');
+    }
+    if (!Array.isArray(pack.addons)) {
+      throw new AssetPackValidationError('addons must be an array', 'addons');
+    }
+
+    // Validate geometry_config
     this.validateGeometryConfig(pack.geometry_config);
+
+    // Validate placement_config if present
+    if (pack.placement_config !== undefined) {
+      this.validatePlacementConfig(pack.placement_config);
+    }
 
     // Validate materials array
     if (!Array.isArray(pack.materials)) {
@@ -116,19 +131,38 @@ export class AssetPackManager {
       throw new AssetPackValidationError('geometry_config must be an object', 'geometry_config');
     }
 
-    const gc = config as Record<string, unknown>;
+    const c = config as Record<string, unknown>;
+    
+    this.validateRequired(c, 'tile_up_axis', 'string');
+    this.validateRequired(c, 'parallel_edge_direction', 'string');
+    
     const validAxes = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-'];
+    
+    if (!validAxes.includes(c.tile_up_axis as string)) {
+      throw new AssetPackValidationError(`geometry_config.tile_up_axis must be one of: ${validAxes.join(', ')}`, 'geometry_config.tile_up_axis');
+    }
+    
+    if (!validAxes.includes(c.parallel_edge_direction as string)) {
+      throw new AssetPackValidationError(`geometry_config.parallel_edge_direction must be one of: ${validAxes.join(', ')}`, 'geometry_config.parallel_edge_direction');
+    }
+  }
 
-    if (!validAxes.includes(gc.tile_up_axis as string)) {
-      throw new AssetPackValidationError('geometry_config.tile_up_axis must be one of: ' + validAxes.join(', '), 'geometry_config.tile_up_axis');
+  private validatePlacementConfig(config: unknown): void {
+    if (!config || typeof config !== 'object') {
+      throw new AssetPackValidationError('placement_config must be an object', 'placement_config');
     }
 
-    if (!validAxes.includes(gc.parallel_edge_direction as string)) {
-      throw new AssetPackValidationError('geometry_config.parallel_edge_direction must be one of: ' + validAxes.join(', '), 'geometry_config.parallel_edge_direction');
-    }
-
-    if (typeof gc.tile_circumradius !== 'number' || gc.tile_circumradius <= 0) {
-      throw new AssetPackValidationError('geometry_config.tile_circumradius must be a positive number', 'geometry_config.tile_circumradius');
+    const c = config as Record<string, unknown>;
+    
+    if (c.default_addon_placement_method !== undefined) {
+      if (typeof c.default_addon_placement_method !== 'string') {
+        throw new AssetPackValidationError('placement_config.default_addon_placement_method must be a string', 'placement_config.default_addon_placement_method');
+      }
+      
+      const validMethods = ['bounding_box', 'model_coordinates'];
+      if (!validMethods.includes(c.default_addon_placement_method as string)) {
+        throw new AssetPackValidationError(`placement_config.default_addon_placement_method must be one of: ${validMethods.join(', ')}`, 'placement_config.default_addon_placement_method');
+      }
     }
   }
 
@@ -252,6 +286,18 @@ export class AssetPackManager {
 
     if (typeof placement.local_scale !== 'number') {
       throw new AssetPackValidationError(`addons[${index}].placement.local_scale must be a number`, `addons[${index}].placement.local_scale`);
+    }
+
+    // Validate optional placement_method field
+    if (placement.placement_method !== undefined) {
+      if (typeof placement.placement_method !== 'string') {
+        throw new AssetPackValidationError(`addons[${index}].placement.placement_method must be a string`, `addons[${index}].placement.placement_method`);
+      }
+      
+      const validMethods = ['bounding_box', 'model_coordinates'];
+      if (!validMethods.includes(placement.placement_method as string)) {
+        throw new AssetPackValidationError(`addons[${index}].placement.placement_method must be one of: ${validMethods.join(', ')}`, `addons[${index}].placement.placement_method`);
+      }
     }
   }
 }

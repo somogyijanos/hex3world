@@ -167,7 +167,8 @@
         "tile_type": "hex-grass-sloped-high",
         "q": -3,
         "r": 0,
-        "elevation": 0.6
+        "elevation": 0,
+        "rotation": 30
       },
       {
         "tile_type": "hex-grass-sloped-low",
@@ -189,7 +190,7 @@
         "addon_id": "building-home-a-blue",
         "q": 1,
         "r": 0,
-        "local_position": [0.1, 0.2, 0],
+        "local_position": [0.1, 0, 0],
         "local_rotation": 30,
         "local_scale": 1.0
       },
@@ -197,7 +198,7 @@
         "addon_id": "building-home-b-blue",
         "q": 0,
         "r": 1,
-        "local_position": [-0.1, -0.2, 0],
+        "local_position": [-0.1, 0, 0],
         "local_rotation": -45,
         "local_scale": 1.0
       },
@@ -237,7 +238,7 @@
         "addon_id": "building-home-a-red",
         "q": -2,
         "r": 0,
-        "local_position": [0.2, 0.1, 0],
+        "local_position": [0.2, 0, 0],
         "local_rotation": 120,
         "local_scale": 1.0
       },
@@ -245,7 +246,7 @@
         "addon_id": "tree-single-a",
         "q": 0,
         "r": -1,
-        "local_position": [0.3, 0.2, 0],
+        "local_position": [0.3, 0, 0],
         "local_rotation": 0,
         "local_scale": 1.0
       },
@@ -253,7 +254,7 @@
         "addon_id": "tree-single-b",
         "q": 1,
         "r": -1,
-        "local_position": [-0.2, 0.4, 0],
+        "local_position": [-0.2, 0, 0],
         "local_rotation": 45,
         "local_scale": 0.8
       },
@@ -269,7 +270,7 @@
         "addon_id": "trees-medium-a",
         "q": 1,
         "r": 1,
-        "local_position": [0.1, -0.3, 0],
+        "local_position": [0.1, 0, 0],
         "local_rotation": 180,
         "local_scale": 1.2
       },
@@ -277,7 +278,7 @@
         "addon_id": "rock-single-a",
         "q": -1,
         "r": 2,
-        "local_position": [-0.4, 0.1, 0],
+        "local_position": [-0.4, 0, 0],
         "local_rotation": 0,
         "local_scale": 0.9
       },
@@ -285,7 +286,7 @@
         "addon_id": "rock-single-b",
         "q": -2,
         "r": 1,
-        "local_position": [0.2, -0.2, 0],
+        "local_position": [0.2, 0, 0],
         "local_rotation": 270,
         "local_scale": 1.1
       },
@@ -309,7 +310,7 @@
         "addon_id": "fence-stone-straight",
         "q": 0,
         "r": 0,
-        "local_position": [0.4, 0.3, 0],
+        "local_position": [0.4, 0, 0],
         "local_rotation": 30,
         "local_scale": 1.0
       },
@@ -317,7 +318,7 @@
         "addon_id": "fence-wood-straight",
         "q": 1,
         "r": 0,
-        "local_position": [-0.3, -0.4, 0],
+        "local_position": [-0.3, 0, 0],
         "local_rotation": 120,
         "local_scale": 1.0
       },
@@ -325,7 +326,7 @@
         "addon_id": "building-bridge-a",
         "q": 2,
         "r": 1,
-        "local_position": [0, 0, 0.1],
+        "local_position": [0, 0, 0.0],
         "local_rotation": 0,
         "local_scale": 1.0
       },
@@ -333,7 +334,7 @@
         "addon_id": "waterlily-a",
         "q": 0,
         "r": 3,
-        "local_position": [0.2, 0.3, 0],
+        "local_position": [0.2, 0, 0],
         "local_rotation": 0,
         "local_scale": 1.0
       },
@@ -341,7 +342,7 @@
         "addon_id": "waterplant-a",
         "q": 1,
         "r": 3,
-        "local_position": [-0.1, 0.2, 0],
+        "local_position": [-0.1, 0, 0],
         "local_rotation": 90,
         "local_scale": 0.8
       },
@@ -349,7 +350,7 @@
         "addon_id": "waterplant-a",
         "q": 2,
         "r": 2,
-        "local_position": [0.3, -0.1, 0],
+        "local_position": [0.3, 0, 0],
         "local_rotation": 180,
         "local_scale": 1.2
       }

@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Settings, X } from 'lucide-react';
+import { Loader2, Settings, X, RotateCcw } from 'lucide-react';
 
 // Available worlds for selection
 const AVAILABLE_WORLDS = [
@@ -157,6 +157,11 @@ export default function HexWorldPage() {
     }
   };
 
+  const handleReload = () => {
+    loadWorld(selectedWorld);
+  };
+
+  // Initialize renderer once on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       initializeRenderer().then(success => {
@@ -192,7 +197,14 @@ export default function HexWorldPage() {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
     };
-  }, [selectedWorld]); // Add selectedWorld as dependency
+  }, []); // Only run once on mount
+
+  // Load world when selectedWorld changes (but don't reinitialize renderer)
+  useEffect(() => {
+    if (hexRendererRef.current) {
+      loadWorld(selectedWorld);
+    }
+  }, [selectedWorld]); // Only run when selectedWorld changes
 
   return (
     <div className="w-full h-screen relative bg-background">
@@ -284,6 +296,17 @@ export default function HexWorldPage() {
                     variant="outline"
                   >
                     Reset Camera
+                  </Button>
+
+                  {/* Reload World */}
+                  <Button
+                    onClick={handleReload}
+                    disabled={isLoading}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reload World
                   </Button>
 
                   {/* Preset Views */}
