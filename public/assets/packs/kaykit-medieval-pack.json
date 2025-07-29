@@ -5,7 +5,8 @@
     "description": "Medieval fantasy hex-based environment assets with modular buildings, roads, rivers, and nature decorations",
     "geometry_config": {
       "tile_up_axis": "y+",
-      "parallel_edge_direction": "z+"
+      "parallel_edge_direction": "z+",
+      "tile_circumradius": 1.1547005383
     },
     "materials": [
       "grass",

@@ -4,6 +4,7 @@
 export interface GeometryConfig {
   tile_up_axis: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
   parallel_edge_direction: 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
+  tile_circumradius: number; // Distance from center to vertex (defines hex size)
 }
 
 // Edge Types

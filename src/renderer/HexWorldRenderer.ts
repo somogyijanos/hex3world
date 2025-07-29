@@ -675,19 +675,20 @@ export class HexWorldRenderer {
   private hexToThreeJSPosition(q: number, r: number, elevation: number, assetPack: AssetPack): THREE.Vector3 {
     const config = assetPack.geometry_config;
     const orientation = this.analyzeGeometryConfig(config);
+    const radius = config.tile_circumradius;
 
     // Calculate hex coordinates in the asset pack's coordinate system
     let hexCoord1: number; // Along higher-order axis in tile plane
     let hexCoord2: number; // Along lower-order axis in tile plane
 
     if (orientation.isPointyTop) {
-      // Pointy-top hexagon math
-      hexCoord1 = Math.sqrt(3) * (q + r / 2);
-      hexCoord2 = 3/2 * r;
+      // Pointy-top hexagon math (scaled by radius)
+      hexCoord1 = radius * Math.sqrt(3) * (q + r / 2);
+      hexCoord2 = radius * 3/2 * r;
     } else {
-      // Flat-top hexagon math  
-      hexCoord1 = 3/2 * q;
-      hexCoord2 = Math.sqrt(3) * (r + q / 2);
+      // Flat-top hexagon math (scaled by radius)
+      hexCoord1 = radius * 3/2 * q;
+      hexCoord2 = radius * Math.sqrt(3) * (r + q / 2);
     }
 
     // Now map these coordinates to Three.js coordinate system

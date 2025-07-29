@@ -126,6 +126,10 @@ export class AssetPackManager {
     if (!validAxes.includes(gc.parallel_edge_direction as string)) {
       throw new AssetPackValidationError('geometry_config.parallel_edge_direction must be one of: ' + validAxes.join(', '), 'geometry_config.parallel_edge_direction');
     }
+
+    if (typeof gc.tile_circumradius !== 'number' || gc.tile_circumradius <= 0) {
+      throw new AssetPackValidationError('geometry_config.tile_circumradius must be a positive number', 'geometry_config.tile_circumradius');
+    }
   }
 
   private validateEdgeTypes(edgeTypes: EdgeTypes, materials: string[]): void {

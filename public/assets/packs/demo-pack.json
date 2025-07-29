@@ -5,7 +5,8 @@
   "description": "Basic demo asset pack with simple 3D STL models",
   "geometry_config": {
     "tile_up_axis": "z+",
-    "parallel_edge_direction": "y+"
+    "parallel_edge_direction": "y+",
+    "tile_circumradius": 1.0
   },
   "materials": [
     "grass",
