@@ -8,10 +8,11 @@ import { World } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Settings, X, RotateCcw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Settings, X, RotateCcw, AlertTriangle, XCircle, Earth } from 'lucide-react';
 
 // Available worlds for selection
 const AVAILABLE_WORLDS = [
@@ -534,37 +535,35 @@ export default function HexWorldPage() {
 
           {/* Expanded state - full controls panel */}
           {isPanelOpen && (
-            <Card className="w-64 backdrop-blur-sm bg-card/95 border-border/50 shadow-lg">
-              <CardHeader className="pb-3">
+            <Card className="w-72 backdrop-blur-sm bg-card/95 border-border/50 shadow-lg">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <X className="h-3 w-3" />
+                      <span className="sr-only">Close controls</span>
+                    </Button>
+                  </CollapsibleTrigger>
                   <span className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
+                    <Earth className="h-4 w-4" />
                     Hex3World
                   </span>
-                  <div className="flex items-center space-x-2">
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <X className="h-3 w-3" />
-                        <span className="sr-only">Close controls</span>
-                      </Button>
-                    </CollapsibleTrigger>
-                  </div>
                 </CardTitle>
               </CardHeader>
               
               <CollapsibleContent>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 text-sm">
                   {/* World Selection */}
-                  <div className="space-y-2">
-                    <Label htmlFor="world-select" className="text-sm font-medium">
-                      World
+                  <div className="space-y-1.5">
+                    <Label htmlFor="world-select" className="text-xs font-medium text-muted-foreground">
+                      WORLD
                     </Label>
                     <Select 
                       value={selectedWorld} 
                       onValueChange={handleWorldChange}
                       disabled={isLoading}
                     >
-                      <SelectTrigger id="world-select">
+                      <SelectTrigger id="world-select" className="h-8">
                         <SelectValue placeholder="Select a world" />
                       </SelectTrigger>
                       <SelectContent>
@@ -577,168 +576,116 @@ export default function HexWorldPage() {
                     </Select>
                   </div>
 
-                  {/* Coordinate Toggle */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="coordinates"
-                      checked={showCoordinates}
-                      onCheckedChange={handleCoordinateToggle}
-                      disabled={isLoading}
-                    />
-                    <Label 
-                      htmlFor="coordinates" 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Show Coordinates
-                    </Label>
-                  </div>
-
-                  {/* Tile Visibility Toggle */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="tiles"
-                      checked={showTiles}
-                      onCheckedChange={handleTileVisibilityToggle}
-                      disabled={isLoading}
-                    />
-                    <Label 
-                      htmlFor="tiles" 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Show Tiles
-                    </Label>
-                  </div>
-
-                  {/* Addon Visibility Toggle */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="addons"
-                      checked={showAddons}
-                      onCheckedChange={handleAddonVisibilityToggle}
-                      disabled={isLoading}
-                    />
-                    <Label 
-                      htmlFor="addons" 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Show Addons
-                    </Label>
-                  </div>
-
-                  {/* Validation Visibility Toggle */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="validation"
-                      checked={showValidation}
-                      onCheckedChange={handleValidationVisibilityToggle}
-                      disabled={isLoading}
-                    />
-                    <Label 
-                      htmlFor="validation" 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Show Validation
-                    </Label>
-                  </div>
-
-                  {/* Interactivity Toggle */}
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id="interactivity"
-                      checked={interactivityEnabled}
-                      onCheckedChange={handleInteractivityToggle}
-                      disabled={isLoading}
-                    />
-                    <Label 
-                      htmlFor="interactivity" 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Enable Tile Selection
-                    </Label>
-                  </div>
-
-
-
-                  
-
-                  {/* Validate Edges Button */}
-                  <Button
-                    onClick={handleValidateEdges}
-                    disabled={isLoading || !currentWorldData || isValidating}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    {isValidating ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                    )}
-                    {isValidating ? 'Validating...' : 'Validate Edges'}
-                  </Button>
-
-                  {/* Clear Validation Button */}
-                  <Button
-                    onClick={handleClearValidation}
-                    disabled={isLoading || !validationSummary}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Clear Validation
-                  </Button>
-
-                  {/* Camera Reset */}
-                  <Button
-                    onClick={handleCameraReset}
-                    disabled={isLoading}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Reset Camera
-                  </Button>
-
-                  {/* Reload World */}
-                  <Button
-                    onClick={handleReload}
-                    disabled={isLoading}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reload World
-                  </Button>
-
-                  {/* Preset Views */}
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Quick Views</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {CAMERA_PRESETS.map(preset => (
-                        <Button
-                          key={preset.name}
-                          onClick={() => handlePresetView(preset)}
+                  {/* Display Options */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">DISPLAY</Label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="tiles"
+                          checked={showTiles}
+                          onCheckedChange={handleTileVisibilityToggle}
                           disabled={isLoading}
-                          variant="secondary"
-                          size="sm"
-                          className="text-xs"
-                        >
-                          {preset.name}
-                        </Button>
-                      ))}
+                        />
+                        <Label htmlFor="tiles" className="leading-none">
+                          Tiles
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="coordinates"
+                          checked={showCoordinates}
+                          onCheckedChange={handleCoordinateToggle}
+                          disabled={isLoading}
+                        />
+                        <Label htmlFor="coordinates" className="leading-none">
+                          Coordinates
+                        </Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="addons"
+                          checked={showAddons}
+                          onCheckedChange={handleAddonVisibilityToggle}
+                          disabled={isLoading}
+                        />
+                        <Label htmlFor="addons" className="leading-none">
+                          Addons
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="validation"
+                          checked={showValidation}
+                          onCheckedChange={handleValidationVisibilityToggle}
+                          disabled={isLoading}
+                        />
+                        <Label htmlFor="validation" className="leading-none">
+                          Validation
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Interactivity Options */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">INTERACTIVITY</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="interactivity"
+                        checked={interactivityEnabled}
+                        onCheckedChange={handleInteractivityToggle}
+                        disabled={isLoading}
+                      />
+                      <Label htmlFor="interactivity" className="leading-none">
+                        Enable Tile Selection
+                      </Label>
                     </div>
                   </div>
 
-                  {/* Validation Results */}
-                  {validationSummary && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Validation</Label>
+                  {/* Validation Actions */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">VALIDATION</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleValidateEdges}
+                        disabled={isLoading || !currentWorldData || isValidating}
+                        className="flex-1 h-8 text-xs"
+                        variant="outline"
+                      >
+                        {isValidating ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                        )}
+                        {isValidating ? 'Validating...' : 'Validate'}
+                      </Button>
+                      
+                      <Button
+                        onClick={handleClearValidation}
+                        disabled={isLoading || !validationSummary}
+                        className="h-8 px-2"
+                        variant="outline"
+                        size="sm"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Validation Results */}
+                    {validationSummary && (
                       <div className="p-2 bg-muted/30 rounded text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Edges:</span>
-                          <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Results:</span>
+                          <div className="flex items-center gap-1">
                             <span className="text-green-600">{validationSummary.validEdges}</span>
-                            <span className="text-muted-foreground"> valid, </span>
+                            <span className="text-muted-foreground">valid</span>
+                            <span className="text-muted-foreground mx-1">•</span>
                             <span className="text-red-600">{validationSummary.invalidEdges}</span>
-                            <span className="text-muted-foreground"> invalid</span>
+                            <span className="text-muted-foreground">invalid</span>
                           </div>
                         </div>
                         {validationSummary.errors.length > 0 && (
@@ -747,8 +694,50 @@ export default function HexWorldPage() {
                           </div>
                         )}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Camera Controls */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">CAMERA</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleCameraReset}
+                        disabled={isLoading}
+                        className="flex-1 h-8 text-xs"
+                        variant="outline"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Reset
+                      </Button>
+                      
+                      <Button
+                        onClick={handleReload}
+                        disabled={isLoading}
+                        className="flex-1 h-8 text-xs"
+                        variant="outline"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Reload
+                      </Button>
                     </div>
-                  )}
+
+                    {/* Preset Views - Compact Grid */}
+                    <div className="grid grid-cols-3 gap-1">
+                      {CAMERA_PRESETS.map(preset => (
+                        <Button
+                          key={preset.name}
+                          onClick={() => handlePresetView(preset)}
+                          disabled={isLoading}
+                          variant="secondary"
+                          size="sm"
+                          className="text-[10px] h-6 px-1"
+                        >
+                          {preset.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 </CardContent>
               </CollapsibleContent>
             </Card>
