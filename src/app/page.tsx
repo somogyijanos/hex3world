@@ -608,13 +608,15 @@ export default function HexWorldPage() {
                       onValueChange={handleWorldChange}
                       disabled={isLoading}
                     >
-                      <SelectTrigger id="world-select" className="h-8">
-                        <SelectValue placeholder="Select a world" />
+                      <SelectTrigger id="world-select" className="h-8 w-full overflow-hidden">
+                        <SelectValue placeholder="Select a world" className="block truncate" />
                       </SelectTrigger>
                       <SelectContent>
                         {availableWorlds.map((world: WorldEntry) => (
-                          <SelectItem key={world.id} value={world.id}>
-                            {world.name}
+                          <SelectItem key={world.id} value={world.id} className="truncate">
+                            <span className="truncate" title={world.name}>
+                              {world.name}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
