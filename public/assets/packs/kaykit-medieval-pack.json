@@ -7,7 +7,7 @@
       "tile_up_axis": "y+",
       "parallel_edge_direction": "z+",
       "tile_circumradius": 1.1547005383,
-      "edge_indexing_offset": 3,
+      "edge_indexing_offset": 2,
       "edge_indexing_direction": "clockwise"
     },
     "placement_config": {
