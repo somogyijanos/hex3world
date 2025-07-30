@@ -115,7 +115,7 @@
         "base_material": "grass",
         "tags": ["walkable", "transport", "road"],
         "edges": ["grass", "road", "grass", "grass", "road", "grass"],
-        "vertices": [["grass"], ["grass", "road"], ["grass"], ["grass"], ["grass", "road"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "road-curve-b",
@@ -123,7 +123,7 @@
         "base_material": "grass",
         "tags": ["walkable", "transport", "road"],
         "edges": ["road", "grass", "grass", "grass", "road", "grass"],
-        "vertices": [["grass", "road"], ["grass"], ["grass"], ["grass"], ["grass", "road"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "road-curve-c",
@@ -131,7 +131,7 @@
         "base_material": "grass",
         "tags": ["walkable", "transport", "road"],
         "edges": ["grass", "grass", "grass", "grass", "road", "road"],
-        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass", "road"], ["grass", "road"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "road-junction-d",
@@ -139,7 +139,7 @@
         "base_material": "grass",
         "tags": ["walkable", "transport", "road", "junction"],
         "edges": ["road", "grass", "road", "grass", "road", "grass"],
-        "vertices": [["grass", "road"], ["grass"], ["grass", "road"], ["grass"], ["grass", "road"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "road-end-m",
@@ -147,7 +147,87 @@
         "base_material": "grass",
         "tags": ["walkable", "transport", "road", "end"],
         "edges": ["grass", "grass", "grass", "grass", "road-end", "grass"],
-        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass", "road"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-e",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_E.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["road", "road", "grass", "grass", "road", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-f",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_F.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["grass", "road", "road", "grass", "road", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-g",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_G.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["grass", "grass", "grass", "road", "road", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-h",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_H.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["grass", "road", "grass", "road", "road", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-i",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_I.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["road", "grass", "road", "road", "grass", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-j",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_J.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["grass", "road", "road", "road", "road", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-k",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_K.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["road", "grass", "road", "road", "road", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-junction-l",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_L.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "junction"],
+        "edges": ["road", "road", "road", "road", "road", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-straight-a-sloped-high",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_A_sloped_high.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "elevated"],
+        "edges": ["grass", "road", "grass", "grass", "road", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "road-straight-a-sloped-low",
+        "model": "models/kaykit-medieval-pack/tiles/roads/hex_road_A_sloped_low.gltf",
+        "base_material": "grass",
+        "tags": ["walkable", "transport", "road", "elevated"],
+        "edges": ["grass", "road", "grass", "grass", "road", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "river-straight-a",
@@ -155,7 +235,7 @@
         "base_material": "grass",
         "tags": ["natural", "water", "river"],
         "edges": ["grass", "river", "grass", "grass", "river", "grass"],
-        "vertices": [["grass"], ["grass", "river"], ["grass"], ["grass"], ["grass", "river"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "river-curve-b",
@@ -163,7 +243,7 @@
         "base_material": "grass",
         "tags": ["natural", "water", "river"],
         "edges": ["river", "grass", "grass", "grass", "river", "grass"],
-        "vertices": [["grass", "river"], ["grass"], ["grass"], ["grass"], ["grass", "river"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "river-curve-curvy-a",
@@ -171,23 +251,143 @@
         "base_material": "grass",
         "tags": ["natural", "water", "river", "scenic"],
         "edges": ["grass", "river", "grass", "grass", "river", "grass"],
-        "vertices": [["grass"], ["grass", "river"], ["grass"], ["grass"], ["grass", "river"], ["grass"]]
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-curve-c",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_C.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river"],
+        "edges": ["grass", "grass", "grass", "grass", "river", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-d",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_D.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["river", "grass", "river", "grass", "river", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-e",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_E.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["river", "river", "grass", "grass", "river", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-f",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_F.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["grass", "river", "river", "grass", "river", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-g",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_G.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["grass", "grass", "grass", "river", "river", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-h",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_H.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["grass", "river", "grass", "river", "river", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-i",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_I.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["river", "grass", "river", "river", "grass", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-j",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_J.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["grass", "river", "river", "river", "river", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-k",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_K.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["river", "grass", "river", "river", "river", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-junction-l",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_L.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "junction"],
+        "edges": ["river", "river", "river", "river", "river", "river"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-crossing-a",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_crossing_A.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "transport", "road", "crossing"],
+        "edges": ["grass", "river", "road", "grass", "river", "road"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
+      },
+      {
+        "id": "river-crossing-b",
+        "model": "models/kaykit-medieval-pack/tiles/rivers/hex_river_crossing_B.gltf",
+        "base_material": "grass",
+        "tags": ["natural", "water", "river", "transport", "road", "crossing"],
+        "edges": ["road", "river", "grass", "road", "river", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["grass"], ["grass"], ["grass"]]
       },
       {
         "id": "coast-a",
         "model": "models/kaykit-medieval-pack/tiles/coast/hex_coast_A.gltf",
         "base_material": "sand",
         "tags": ["walkable", "natural", "shore", "coastal"],
-        "edges": ["grass", "grass-sand", "water", "water", "grass-sand", "grass"],
-        "vertices": [["grass"], ["grass"], ["sand", "water"], ["water"], ["sand", "water"], ["grass"]]
+        "edges": ["grass", "grass-sand", "water", "grass-sand", "grass", "grass"],
+        "vertices": [["grass"], ["grass"], ["sand", "water"], ["sand", "water"], ["grass"], ["grass"]]
       },
       {
         "id": "coast-b",
         "model": "models/kaykit-medieval-pack/tiles/coast/hex_coast_B.gltf",
         "base_material": "sand",
         "tags": ["walkable", "natural", "shore", "coastal"],
-        "edges": ["grass", "grass-sand", "water", "water", "water", "grass-sand"],
-        "vertices": [["grass"], ["grass"], ["sand", "water"], ["water"], ["water"], ["grass"]]
+        "edges": ["grass", "grass-sand", "water", "water", "grass-sand", "grass"],
+        "vertices": [["grass"], ["grass"], ["sand", "water"], ["water"], ["sand", "water"], ["grass"]]
+      },
+      {
+        "id": "coast-c",
+        "model": "models/kaykit-medieval-pack/tiles/coast/hex_coast_C.gltf",
+        "base_material": "sand",
+        "tags": ["walkable", "natural", "shore", "coastal"],
+        "edges": ["grass-sand", "water", "water", "water", "grass-sand", "grass"],
+        "vertices": [["grass"], ["sand", "water"], ["water"], ["water"], ["sand", "water"], ["grass"]]
+      },
+      {
+        "id": "coast-d",
+        "model": "models/kaykit-medieval-pack/tiles/coast/hex_coast_D.gltf",
+        "base_material": "sand",
+        "tags": ["walkable", "natural", "shore", "coastal"],
+        "edges": ["water", "water", "water", "water", "grass-sand", "grass-sand"],
+        "vertices": [["sand", "water"], ["water"], ["water"], ["water"], ["sand","water"], ["grass"]]
+      },
+      {
+        "id": "coast-e",
+        "model": "models/kaykit-medieval-pack/tiles/coast/hex_coast_E.gltf",
+        "base_material": "sand",
+        "tags": ["walkable", "natural", "shore", "coastal"],
+        "edges": ["grass", "grass", "grass-sand", "grass-sand", "grass", "grass"],
+        "vertices": [["grass"], ["grass"], ["grass"], ["sand"], ["grass"], ["grass"]]
       }
     ],
     "addons": [
@@ -368,6 +568,138 @@
         }
       },
       {
+        "id": "building-archeryrange-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_archeryrange_blue.gltf",
+        "tags": ["building", "archery", "blue", "military", "training"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-barracks-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_barracks_blue.gltf",
+        "tags": ["building", "barracks", "blue", "military"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-blacksmith-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_blacksmith_blue.gltf",
+        "tags": ["building", "blacksmith", "blue", "industrial", "crafting"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-lumbermill-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_lumbermill_blue.gltf",
+        "tags": ["building", "lumbermill", "blue", "industrial", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-mine-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_mine_blue.gltf",
+        "tags": ["building", "mine", "blue", "industrial", "mining"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tavern-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_tavern_blue.gltf",
+        "tags": ["building", "tavern", "blue", "commercial", "social"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-a-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_tower_A_blue.gltf",
+        "tags": ["building", "tower", "blue", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-b-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_tower_B_blue.gltf",
+        "tags": ["building", "tower", "blue", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-base-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_tower_base_blue.gltf",
+        "tags": ["building", "tower", "blue", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-catapult-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_tower_catapult_blue.gltf",
+        "tags": ["building", "tower", "blue", "military", "siege", "catapult"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-watermill-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_watermill_blue.gltf",
+        "tags": ["building", "watermill", "blue", "industrial"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-well-blue",
+        "model": "models/kaykit-medieval-pack/buildings/blue/building_well_blue.gltf",
+        "tags": ["building", "well", "blue", "utility", "water"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
         "id": "building-bridge-a",
         "model": "models/kaykit-medieval-pack/buildings/neutral/building_bridge_A.gltf",
         "tags": ["building", "bridge", "neutral", "transport"],
@@ -401,6 +733,380 @@
         }
       },
       {
+        "id": "building-home-b-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_home_B_red.gltf",
+        "tags": ["building", "house", "red", "residential"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-archeryrange-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_archeryrange_red.gltf",
+        "tags": ["building", "archery", "red", "military", "training"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-barracks-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_barracks_red.gltf",
+        "tags": ["building", "barracks", "red", "military"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-blacksmith-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_blacksmith_red.gltf",
+        "tags": ["building", "blacksmith", "red", "industrial", "crafting"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-church-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_church_red.gltf",
+        "tags": ["building", "church", "red", "religious"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-lumbermill-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_lumbermill_red.gltf",
+        "tags": ["building", "lumbermill", "red", "industrial", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-market-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_market_red.gltf",
+        "tags": ["building", "market", "red", "commercial"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-mine-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_mine_red.gltf",
+        "tags": ["building", "mine", "red", "industrial", "mining"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tavern-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_tavern_red.gltf",
+        "tags": ["building", "tavern", "red", "commercial", "social"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-a-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_tower_A_red.gltf",
+        "tags": ["building", "tower", "red", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-b-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_tower_B_red.gltf",
+        "tags": ["building", "tower", "red", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-base-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_tower_base_red.gltf",
+        "tags": ["building", "tower", "red", "military", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-tower-catapult-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_tower_catapult_red.gltf",
+        "tags": ["building", "tower", "red", "military", "siege", "catapult"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-watermill-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_watermill_red.gltf",
+        "tags": ["building", "watermill", "red", "industrial"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-well-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_well_red.gltf",
+        "tags": ["building", "well", "red", "utility", "water"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-windmill-red",
+        "model": "models/kaykit-medieval-pack/buildings/red/building_windmill_red.gltf",
+        "tags": ["building", "windmill", "red", "industrial"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-bridge-b",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_bridge_B.gltf",
+        "tags": ["building", "bridge", "neutral", "transport"],
+        "placement": {
+          "tile_tags": ["walkable", "transport"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-destroyed",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_destroyed.gltf",
+        "tags": ["building", "destroyed", "neutral", "ruins"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-dirt",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_dirt.gltf",
+        "tags": ["building", "dirt", "neutral", "construction"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-grain",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_grain.gltf",
+        "tags": ["building", "grain", "neutral", "agriculture"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-scaffolding",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_scaffolding.gltf",
+        "tags": ["building", "scaffolding", "neutral", "construction"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-stage-a",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_stage_A.gltf",
+        "tags": ["building", "stage", "neutral", "platform"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-stage-b",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_stage_B.gltf",
+        "tags": ["building", "stage", "neutral", "platform"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "building-stage-c",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/building_stage_C.gltf",
+        "tags": ["building", "stage", "neutral", "platform"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "fence-stone-straight-gate",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/fence_stone_straight_gate.gltf",
+        "tags": ["fence", "stone", "neutral", "barrier", "gate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "fence-wood-straight-gate",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/fence_wood_straight_gate.gltf",
+        "tags": ["fence", "wood", "neutral", "barrier", "gate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "projectile-catapult",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/projectile_catapult.gltf",
+        "tags": ["projectile", "catapult", "neutral", "siege"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-corner-a-gate",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_corner_A_gate.gltf",
+        "tags": ["wall", "corner", "neutral", "fortification", "gate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-corner-a-inside",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_corner_A_inside.gltf",
+        "tags": ["wall", "corner", "neutral", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-corner-a-outside",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_corner_A_outside.gltf",
+        "tags": ["wall", "corner", "neutral", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-corner-b-inside",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_corner_B_inside.gltf",
+        "tags": ["wall", "corner", "neutral", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-corner-b-outside",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_corner_B_outside.gltf",
+        "tags": ["wall", "corner", "neutral", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-straight",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_straight.gltf",
+        "tags": ["wall", "straight", "neutral", "fortification"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wall-straight-gate",
+        "model": "models/kaykit-medieval-pack/buildings/neutral/wall_straight_gate.gltf",
+        "tags": ["wall", "straight", "neutral", "fortification", "gate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
         "id": "waterlily-a",
         "model": "models/kaykit-medieval-pack/decoration/nature/waterlily_A.gltf",
         "tags": ["water", "plant", "nature", "decoration"],
@@ -417,6 +1123,644 @@
         "tags": ["water", "plant", "nature", "decoration"],
         "placement": {
           "tile_tags": ["water", "shore"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "waterplant-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/waterplant_B.gltf",
+        "tags": ["water", "plant", "nature", "decoration"],
+        "placement": {
+          "tile_tags": ["water", "shore"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "waterplant-c",
+        "model": "models/kaykit-medieval-pack/decoration/nature/waterplant_C.gltf",
+        "tags": ["water", "plant", "nature", "decoration"],
+        "placement": {
+          "tile_tags": ["water", "shore"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "waterlily-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/waterlily_B.gltf",
+        "tags": ["water", "plant", "nature", "decoration"],
+        "placement": {
+          "tile_tags": ["water"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "tree-single-a-cut",
+        "model": "models/kaykit-medieval-pack/decoration/nature/tree_single_A_cut.gltf",
+        "tags": ["tree", "nature", "cut", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "tree-single-b-cut",
+        "model": "models/kaykit-medieval-pack/decoration/nature/tree_single_B_cut.gltf",
+        "tags": ["tree", "nature", "cut", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-large-a",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_A_large.gltf",
+        "tags": ["trees", "nature", "forest", "cluster", "large"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-a-cut",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_A_cut.gltf",
+        "tags": ["trees", "nature", "cut", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-small-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_B_small.gltf",
+        "tags": ["trees", "nature", "forest", "cluster"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-medium-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_B_medium.gltf",
+        "tags": ["trees", "nature", "forest", "cluster"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-large-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_B_large.gltf",
+        "tags": ["trees", "nature", "forest", "cluster", "large"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "trees-b-cut",
+        "model": "models/kaykit-medieval-pack/decoration/nature/trees_B_cut.gltf",
+        "tags": ["trees", "nature", "cut", "lumber"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "rock-single-c",
+        "model": "models/kaykit-medieval-pack/decoration/nature/rock_single_C.gltf",
+        "tags": ["rock", "nature", "stone"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "rock-single-d",
+        "model": "models/kaykit-medieval-pack/decoration/nature/rock_single_D.gltf",
+        "tags": ["rock", "nature", "stone"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "rock-single-e",
+        "model": "models/kaykit-medieval-pack/decoration/nature/rock_single_E.gltf",
+        "tags": ["rock", "nature", "stone"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hill-single-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hill_single_B.gltf",
+        "tags": ["hill", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hill-single-c",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hill_single_C.gltf",
+        "tags": ["hill", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-a",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_A.gltf",
+        "tags": ["hills", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-a-trees",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_A_trees.gltf",
+        "tags": ["hills", "nature", "elevation", "forest"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_B.gltf",
+        "tags": ["hills", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-b-trees",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_B_trees.gltf",
+        "tags": ["hills", "nature", "elevation", "forest"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-c",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_C.gltf",
+        "tags": ["hills", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "hills-c-trees",
+        "model": "models/kaykit-medieval-pack/decoration/nature/hills_C_trees.gltf",
+        "tags": ["hills", "nature", "elevation", "forest"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-a",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_A.gltf",
+        "tags": ["mountain", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-a-grass",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_A_grass.gltf",
+        "tags": ["mountain", "nature", "elevation", "grass"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-b",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_B.gltf",
+        "tags": ["mountain", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-b-grass",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_B_grass.gltf",
+        "tags": ["mountain", "nature", "elevation", "grass"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-b-grass-trees",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_B_grass_trees.gltf",
+        "tags": ["mountain", "nature", "elevation", "forest", "grass"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-c",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_C.gltf",
+        "tags": ["mountain", "nature", "elevation"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-c-grass",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_C_grass.gltf",
+        "tags": ["mountain", "nature", "elevation", "grass"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "mountain-c-grass-trees",
+        "model": "models/kaykit-medieval-pack/decoration/nature/mountain_C_grass_trees.gltf",
+        "tags": ["mountain", "nature", "elevation", "forest", "grass"],
+        "placement": {
+          "tile_tags": ["walkable", "natural", "elevated"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "cloud-big",
+        "model": "models/kaykit-medieval-pack/decoration/nature/cloud_big.gltf",
+        "tags": ["cloud", "nature", "sky", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 5, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "cloud-small",
+        "model": "models/kaykit-medieval-pack/decoration/nature/cloud_small.gltf",
+        "tags": ["cloud", "nature", "sky", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable", "natural"],
+          "local_position": [0, 4, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "barrel",
+        "model": "models/kaykit-medieval-pack/decoration/props/barrel.gltf",
+        "tags": ["prop", "storage", "barrel"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "bucket-empty",
+        "model": "models/kaykit-medieval-pack/decoration/props/bucket_empty.gltf",
+        "tags": ["prop", "container", "bucket"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "bucket-water",
+        "model": "models/kaykit-medieval-pack/decoration/props/bucket_water.gltf",
+        "tags": ["prop", "container", "bucket", "water"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "bucket-arrows",
+        "model": "models/kaykit-medieval-pack/decoration/props/bucket_arrows.gltf",
+        "tags": ["prop", "container", "bucket", "arrows", "military"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-a-big",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_A_big.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-a-small",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_A_small.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-b-big",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_B_big.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-b-small",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_B_small.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-long-a",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_long_A.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-long-b",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_long_B.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-long-c",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_long_C.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-long-empty",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_long_empty.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "crate-open",
+        "model": "models/kaykit-medieval-pack/decoration/props/crate_open.gltf",
+        "tags": ["prop", "storage", "crate"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "flag-blue",
+        "model": "models/kaykit-medieval-pack/decoration/props/flag_blue.gltf",
+        "tags": ["prop", "flag", "blue", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "flag-green",
+        "model": "models/kaykit-medieval-pack/decoration/props/flag_green.gltf",
+        "tags": ["prop", "flag", "green", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "flag-red",
+        "model": "models/kaykit-medieval-pack/decoration/props/flag_red.gltf",
+        "tags": ["prop", "flag", "red", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "flag-yellow",
+        "model": "models/kaykit-medieval-pack/decoration/props/flag_yellow.gltf",
+        "tags": ["prop", "flag", "yellow", "decoration"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "ladder",
+        "model": "models/kaykit-medieval-pack/decoration/props/ladder.gltf",
+        "tags": ["prop", "equipment", "ladder"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "pallet",
+        "model": "models/kaykit-medieval-pack/decoration/props/pallet.gltf",
+        "tags": ["prop", "storage", "pallet"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "resource-lumber",
+        "model": "models/kaykit-medieval-pack/decoration/props/resource_lumber.gltf",
+        "tags": ["prop", "resource", "lumber", "wood"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "resource-stone",
+        "model": "models/kaykit-medieval-pack/decoration/props/resource_stone.gltf",
+        "tags": ["prop", "resource", "stone"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "sack",
+        "model": "models/kaykit-medieval-pack/decoration/props/sack.gltf",
+        "tags": ["prop", "storage", "sack"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "target",
+        "model": "models/kaykit-medieval-pack/decoration/props/target.gltf",
+        "tags": ["prop", "training", "target", "military"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "tent",
+        "model": "models/kaykit-medieval-pack/decoration/props/tent.gltf",
+        "tags": ["prop", "shelter", "tent"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "weaponrack",
+        "model": "models/kaykit-medieval-pack/decoration/props/weaponrack.gltf",
+        "tags": ["prop", "equipment", "weapons", "military"],
+        "placement": {
+          "tile_tags": ["walkable"],
+          "local_position": [0, 0, 0],
+          "local_rotation": 0,
+          "local_scale": 1.0
+        }
+      },
+      {
+        "id": "wheelbarrow",
+        "model": "models/kaykit-medieval-pack/decoration/props/wheelbarrow.gltf",
+        "tags": ["prop", "equipment", "transport"],
+        "placement": {
+          "tile_tags": ["walkable"],
           "local_position": [0, 0, 0],
           "local_rotation": 0,
           "local_scale": 1.0
