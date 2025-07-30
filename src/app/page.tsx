@@ -12,15 +12,20 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Settings, X, RotateCcw, AlertTriangle, XCircle, Earth } from 'lucide-react';
+import { Loader2, Settings, X, RotateCcw, AlertTriangle, XCircle, Earth, Wand2 } from 'lucide-react';
+import { WorldGenerationPanel } from '@/components/WorldGenerationPanel';
 
-// Available worlds for selection
-const AVAILABLE_WORLDS = [
-  { id: 'demo-world', name: 'Demo World', url: '/assets/worlds/demo-world.json' },
-  { id: 'medieval-village-world', name: 'Medieval Village World', url: '/assets/worlds/medieval-village-world.json' },
-  { id: 'grass-road-loop-world', name: 'Grass Road Loop World', url: '/assets/worlds/grass-road-loop-world.json' },
-  // Add more worlds here as they become available
-  // { id: 'custom-world', name: 'Custom World', url: '/assets/worlds/custom-world.json' }
+// World type definition
+interface WorldEntry {
+  id: string;
+  name: string;
+  url: string;
+}
+
+// Available asset packs
+const AVAILABLE_ASSET_PACKS = [
+  { id: 'demo-pack', name: 'Simple Demo Pack', url: '/assets/packs/demo-pack.json' },
+  { id: 'kaykit-medieval-pack', name: 'KayKit Medieval Pack', url: '/assets/packs/kaykit-medieval-pack.json' }
 ];
 
 // Preset camera views
@@ -37,7 +42,7 @@ export default function HexWorldPage() {
   const hexRendererRef = useRef<HexWorldRenderer | null>(null);
   const assetManagerRef = useRef<AssetPackManager | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedWorld, setSelectedWorld] = useState(AVAILABLE_WORLDS[0].id);
+  const [selectedWorld, setSelectedWorld] = useState('demo-world');
   const [showCoordinates, setShowCoordinates] = useState(true);
   const [showTiles, setShowTiles] = useState(true);
   const [showAddons, setShowAddons] = useState(true);
@@ -47,6 +52,8 @@ export default function HexWorldPage() {
   const [selectedValidationInfo, setSelectedValidationInfo] = useState<EdgeValidationResult | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showGenerationPanel, setShowGenerationPanel] = useState(false);
+  const [availableWorlds, setAvailableWorlds] = useState<WorldEntry[]>([]);
 
   // Close modal when selections change
   useEffect(() => {
@@ -108,14 +115,59 @@ export default function HexWorldPage() {
     }
   };
 
+  const refreshAvailableWorlds = async () => {
+    try {
+      const response = await fetch('/api/list-worlds');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableWorlds(data.worlds);
+      } else {
+        console.error('Failed to fetch available worlds:', await response.text());
+        // Fallback to basic preset worlds if API fails
+        setAvailableWorlds([
+          { id: 'demo-world', name: 'Demo World', url: '/assets/worlds/demo-world.json' },
+          { id: 'medieval-village-world', name: 'Medieval Village World', url: '/assets/worlds/medieval-village-world.json' },
+          { id: 'grass-road-loop-world', name: 'Grass Road Loop World', url: '/assets/worlds/grass-road-loop-world.json' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching available worlds:', error);
+      // Fallback to basic preset worlds if API fails
+      setAvailableWorlds([
+        { id: 'demo-world', name: 'Demo World', url: '/assets/worlds/demo-world.json' },
+        { id: 'medieval-village-world', name: 'Medieval Village World', url: '/assets/worlds/medieval-village-world.json' },
+        { id: 'grass-road-loop-world', name: 'Grass Road Loop World', url: '/assets/worlds/grass-road-loop-world.json' }
+      ]);
+    }
+  };
+
+  const ensureAssetPackLoaded = async (requiredAssetPack: string) => {
+    if (!assetManagerRef.current) {
+      throw new Error('Asset manager not initialized');
+    }
+
+    // Check if asset pack is already loaded
+    if (!assetManagerRef.current.getAssetPack(requiredAssetPack)) {
+      console.log(`Loading required asset pack: ${requiredAssetPack}`);
+      const assetPackUrl = `/assets/packs/${requiredAssetPack}.json`;
+      try {
+        const loadedPack = await assetManagerRef.current.loadAssetPackFromUrl(assetPackUrl);
+        console.log(`Asset pack loaded successfully: ${loadedPack.id}`);
+      } catch (packError) {
+        console.error(`Failed to load asset pack from ${assetPackUrl}:`, packError);
+        throw new Error(`Cannot load required asset pack '${requiredAssetPack}': ${packError instanceof Error ? packError.message : String(packError)}`);
+      }
+    } else {
+      console.log(`Asset pack ${requiredAssetPack} already loaded`);
+    }
+  };
+
   const loadWorld = async (worldId: string) => {
     if (!hexRendererRef.current || !assetManagerRef.current) return;
     
-    const world = AVAILABLE_WORLDS.find(w => w.id === worldId);
-    if (!world) {
-      console.error(`World '${worldId}' not found in available worlds`);
-      return;
-    }
+    // Construct world URL directly from ID
+    const worldUrl = `/assets/worlds/${worldId}.json`;
+    const world = { id: worldId, name: worldId, url: worldUrl };
     
     try {
       setIsLoading(true);
@@ -134,20 +186,7 @@ export default function HexWorldPage() {
       }
       
       // Load the required asset pack if not already loaded
-      const requiredAssetPack = worldData.asset_pack;
-      if (!assetManagerRef.current!.getAssetPack(requiredAssetPack)) {
-        console.log(`Loading required asset pack: ${requiredAssetPack}`);
-        const assetPackUrl = `/assets/packs/${requiredAssetPack}.json`;
-        try {
-          const loadedPack = await assetManagerRef.current!.loadAssetPackFromUrl(assetPackUrl);
-          console.log(`Asset pack loaded successfully: ${loadedPack.id}, now checking if it's available: ${assetManagerRef.current!.getAssetPack(requiredAssetPack) ? 'YES' : 'NO'}`);
-        } catch (packError) {
-          console.error(`Failed to load asset pack from ${assetPackUrl}:`, packError);
-          throw new Error(`Cannot load required asset pack '${requiredAssetPack}': ${packError instanceof Error ? packError.message : String(packError)}`);
-        }
-      } else {
-        console.log(`Asset pack ${requiredAssetPack} already loaded`);
-      }
+      await ensureAssetPackLoaded(worldData.asset_pack);
       
       await hexRendererRef.current!.renderWorld(worldData);
       setCurrentWorldData(worldData); // Store world data for validation
@@ -264,24 +303,27 @@ export default function HexWorldPage() {
 
   // Initialize renderer once on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      initializeRenderer().then(success => {
-        if (success) {
-          setTimeout(() => {
-            loadWorld(selectedWorld);
-          }, 500);
-        } else {
-          setTimeout(() => {
-            initializeRenderer().then(retrySuccess => {
-              if (retrySuccess) {
-                setTimeout(() => {
-                  loadWorld(selectedWorld);
-                }, 500);
-              }
-            });
-          }, 1000);
-        }
-      });
+    const timer = setTimeout(async () => {
+      // Load available worlds first
+      await refreshAvailableWorlds();
+      
+      // Then initialize renderer
+      const success = await initializeRenderer();
+      if (success) {
+        setTimeout(() => {
+          loadWorld(selectedWorld);
+        }, 500);
+      } else {
+        // Retry initialization after delay
+        setTimeout(async () => {
+          const retrySuccess = await initializeRenderer();
+          if (retrySuccess) {
+            setTimeout(() => {
+              loadWorld(selectedWorld);
+            }, 500);
+          }
+        }, 1000);
+      }
     }, 100);
 
     // Handle window resize
@@ -567,7 +609,7 @@ export default function HexWorldPage() {
                         <SelectValue placeholder="Select a world" />
                       </SelectTrigger>
                       <SelectContent>
-                        {AVAILABLE_WORLDS.map(world => (
+                        {availableWorlds.map((world: WorldEntry) => (
                           <SelectItem key={world.id} value={world.id}>
                             {world.name}
                           </SelectItem>
@@ -697,6 +739,20 @@ export default function HexWorldPage() {
                     )}
                   </div>
 
+                  {/* AI Generation */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">AI GENERATION</Label>
+                    <Button
+                      onClick={() => setShowGenerationPanel(true)}
+                      disabled={isLoading}
+                      className="w-full h-8 text-xs"
+                      variant="default"
+                    >
+                      <Wand2 className="h-3 w-3 mr-1" />
+                      Generate World
+                    </Button>
+                  </div>
+
                   {/* Camera Controls */}
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-muted-foreground">CAMERA</Label>
@@ -744,6 +800,69 @@ export default function HexWorldPage() {
           )}
         </Collapsible>
       </div>
+
+      {/* AI World Generation Panel */}
+      {showGenerationPanel && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowGenerationPanel(false)}
+        >
+          <div 
+            className="relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              onClick={() => setShowGenerationPanel(false)}
+              variant="outline"
+              size="sm"
+              className="absolute -top-12 right-0 bg-white/90 hover:bg-white"
+            >
+              <X className="h-4 w-4" />
+              Close
+            </Button>
+            <WorldGenerationPanel
+              assetPackManager={assetManagerRef.current!}
+              availableAssetPacks={AVAILABLE_ASSET_PACKS.map(pack => pack.id)}
+              currentWorld={currentWorldData || undefined}
+              onWorldGenerated={async (world) => {
+                // Save the generated world
+                try {
+                  const response = await fetch('/api/save-world', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ world })
+                  });
+                  
+                  if (response.ok) {
+                    const result = await response.json();
+                    console.log('World saved:', result.message);
+                  } else {
+                    console.error('Failed to save world:', await response.text());
+                  }
+                } catch (error) {
+                  console.error('Error saving world:', error);
+                }
+
+                // Update UI
+                setCurrentWorldData(world);
+                if (hexRendererRef.current) {
+                  // Ensure the required asset pack is loaded before rendering
+                  await ensureAssetPackLoaded(world.asset_pack);
+                  hexRendererRef.current.renderWorld(world);
+                }
+                setShowGenerationPanel(false);
+
+                // Refresh available worlds list
+                await refreshAvailableWorlds();
+              }}
+              onProgressUpdate={(progress) => {
+                // Could show progress in a toast or status area
+                console.log('Generation progress:', progress);
+              }}
+            />
+          </div>
+        </div>
+      )}
       
       {/* Loading indicator */}
       {isLoading && (
