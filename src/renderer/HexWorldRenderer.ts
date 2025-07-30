@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { World, AssetPack, GeometryConfig, WorldTile, WorldAddOn } from '../types/index';
 import { AssetPackManager } from '../core/AssetPackManager';
+import { EdgeValidator, ValidationSummary, EdgeValidationResult } from '../core/EdgeValidator';
 
 export interface RendererConfig {
   container: HTMLElement;
@@ -30,6 +31,14 @@ export interface LoadedModel {
   materials: THREE.Material[];
 }
 
+export interface TileInfo {
+  coordinates: { q: number; r: number };
+  tileType: string;
+  elevation: number;
+  rotation: number;
+  position: THREE.Vector3;
+}
+
 export class HexWorldRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
@@ -47,9 +56,37 @@ export class HexWorldRenderer {
   private cornerAxesGroup?: THREE.Group;
   private showCoordinateAxes: boolean = true;
 
+  // Visibility controls
+  private tilesGroup: THREE.Group;
+  private addonsGroup: THREE.Group;
+  private validationGroup: THREE.Group;
+  private showTiles: boolean = true;
+  private showAddons: boolean = true;
+  private showValidation: boolean = false;
+
+  // Validation system
+  private edgeValidator: EdgeValidator;
+  private currentValidationSummary?: ValidationSummary;
+
+  // Interactivity system
+  private interactivityEnabled: boolean = false;
+  private raycaster: THREE.Raycaster;
+  private mouse: THREE.Vector2;
+  private selectedTile?: THREE.Mesh;
+  private selectedTileHighlight?: THREE.Mesh;
+  private selectedValidation?: THREE.Mesh;
+  private selectedValidationHighlight?: THREE.Mesh;
+  private onTileSelectedCallback?: (tileInfo: TileInfo | null) => void;
+  private onValidationSelectedCallback?: (validationInfo: EdgeValidationResult | null) => void;
+
   constructor(config: RendererConfig, assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
     this.showCoordinateAxes = config.showCornerAxes ?? true;
+    this.edgeValidator = new EdgeValidator(assetPackManager);
+    
+    // Initialize interactivity
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
     
     // Initialize Three.js components
     this.scene = new THREE.Scene();
@@ -71,13 +108,23 @@ export class HexWorldRenderer {
     
     config.container.appendChild(this.renderer.domElement);
     
+    // Setup mouse event listeners
+    this.setupMouseEvents();
+    
     // Setup scene
     this.setupScene();
     this.setupCamera();
     this.setupLighting();
     
-    // Create world group
+    // Create world group and sub-groups for organized rendering
     this.worldGroup = new THREE.Group();
+    this.tilesGroup = new THREE.Group();
+    this.addonsGroup = new THREE.Group();
+    this.validationGroup = new THREE.Group();
+    
+    this.worldGroup.add(this.tilesGroup);
+    this.worldGroup.add(this.addonsGroup);
+    this.worldGroup.add(this.validationGroup);
     this.scene.add(this.worldGroup);
     
     // Setup UI scene and camera for overlay elements (standard Three.js practice)
@@ -356,6 +403,194 @@ export class HexWorldRenderer {
     this.renderer.render(this.uiScene, this.uiCamera);
     this.renderer.autoClear = true;
   };
+
+  /**
+   * Setup mouse event listeners for interactivity
+   */
+  private setupMouseEvents(): void {
+    const canvas = this.renderer.domElement;
+
+    const onMouseClick = (event: MouseEvent) => {
+      if (!this.interactivityEnabled) return;
+
+      // Calculate mouse position in normalized device coordinates
+      const rect = canvas.getBoundingClientRect();
+      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      // Perform raycasting - check validation spheres first (they're smaller and on top)
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      
+      // Check validation objects first (they have priority due to being smaller targets)
+      const validationIntersects = this.raycaster.intersectObjects(this.validationGroup.children, true);
+      if (validationIntersects.length > 0) {
+        const intersectedValidation = validationIntersects[0].object as THREE.Mesh;
+        this.selectValidation(intersectedValidation);
+        this.deselectTile(); // Clear tile selection when selecting validation
+        return;
+      }
+
+      // Then check tile objects
+      const tileIntersects = this.raycaster.intersectObjects(this.tilesGroup.children, true);
+      if (tileIntersects.length > 0) {
+        const intersectedMesh = tileIntersects[0].object as THREE.Mesh;
+        this.selectTile(intersectedMesh);
+        this.deselectValidation(); // Clear validation selection when selecting tile
+      } else {
+        // Clear all selections if nothing was hit
+        this.deselectTile();
+        this.deselectValidation();
+      }
+    };
+
+    canvas.addEventListener('click', onMouseClick, false);
+  }
+
+  /**
+   * Select a tile and highlight it
+   */
+  private selectTile(tileMesh: THREE.Mesh): void {
+    if (this.selectedTile === tileMesh) return; // Already selected
+
+    // Deselect previous tile
+    this.deselectTile();
+
+    this.selectedTile = tileMesh;
+
+    // Create highlight
+    this.createTileHighlight(tileMesh);
+
+    // Extract tile info and notify callback
+    const tileInfo = this.extractTileInfo(tileMesh);
+    if (this.onTileSelectedCallback && tileInfo) {
+      this.onTileSelectedCallback(tileInfo);
+    }
+  }
+
+  /**
+   * Deselect current tile and remove highlight
+   */
+  private deselectTile(): void {
+    if (this.selectedTileHighlight) {
+      this.scene.remove(this.selectedTileHighlight);
+      this.selectedTileHighlight.geometry.dispose();
+      (this.selectedTileHighlight.material as THREE.Material).dispose();
+      this.selectedTileHighlight = undefined;
+    }
+
+    this.selectedTile = undefined;
+
+    if (this.onTileSelectedCallback) {
+      this.onTileSelectedCallback(null);
+    }
+  }
+
+  /**
+   * Create visual highlight for selected tile
+   */
+  private createTileHighlight(tileMesh: THREE.Mesh): void {
+    const geometry = tileMesh.geometry.clone();
+    
+    // Create wireframe material for highlight
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    this.selectedTileHighlight = new THREE.Mesh(geometry, material);
+    this.selectedTileHighlight.position.copy(tileMesh.position);
+    this.selectedTileHighlight.rotation.copy(tileMesh.rotation);
+    this.selectedTileHighlight.scale.copy(tileMesh.scale);
+    this.selectedTileHighlight.scale.multiplyScalar(1.02); // Slightly larger for visibility
+
+    this.scene.add(this.selectedTileHighlight);
+  }
+
+  /**
+   * Extract tile information from mesh userData
+   */
+  private extractTileInfo(tileMesh: THREE.Mesh): TileInfo | null {
+    const userData = tileMesh.userData;
+    if (!userData.tileData) return null;
+
+    const tileData = userData.tileData;
+    return {
+      coordinates: { q: tileData.q, r: tileData.r },
+      tileType: tileData.tile_type,
+      elevation: tileData.elevation,
+      rotation: tileData.rotation || 0,
+      position: tileMesh.position.clone()
+    };
+  }
+
+  /**
+   * Select a validation error and highlight it
+   */
+  private selectValidation(validationMesh: THREE.Mesh): void {
+    if (this.selectedValidation === validationMesh) return; // Already selected
+
+    // Deselect previous validation
+    this.deselectValidation();
+
+    this.selectedValidation = validationMesh;
+
+    // Create highlight
+    this.createValidationHighlight(validationMesh);
+
+    // Extract validation info and notify callback
+    const validationInfo = this.extractValidationInfo(validationMesh);
+    if (this.onValidationSelectedCallback && validationInfo) {
+      this.onValidationSelectedCallback(validationInfo);
+    }
+  }
+
+  /**
+   * Deselect current validation and remove highlight
+   */
+  private deselectValidation(): void {
+    if (this.selectedValidationHighlight) {
+      this.scene.remove(this.selectedValidationHighlight);
+      this.selectedValidationHighlight.geometry.dispose();
+      (this.selectedValidationHighlight.material as THREE.Material).dispose();
+      this.selectedValidationHighlight = undefined;
+    }
+
+    this.selectedValidation = undefined;
+
+    if (this.onValidationSelectedCallback) {
+      this.onValidationSelectedCallback(null);
+    }
+  }
+
+  /**
+   * Create visual highlight for selected validation error
+   */
+  private createValidationHighlight(validationMesh: THREE.Mesh): void {
+    const geometry = new THREE.SphereGeometry(0.18); // Slightly larger than the validation sphere
+    
+    // Create wireframe material for highlight
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffff00, // Yellow highlight
+      wireframe: true,
+      transparent: true,
+      opacity: 1.0
+    });
+
+    this.selectedValidationHighlight = new THREE.Mesh(geometry, material);
+    this.selectedValidationHighlight.position.copy(validationMesh.position);
+
+    this.scene.add(this.selectedValidationHighlight);
+  }
+
+  /**
+   * Extract validation information from mesh userData
+   */
+  private extractValidationInfo(validationMesh: THREE.Mesh): EdgeValidationResult | null {
+    const userData = validationMesh.userData;
+    return userData.validationResult || null;
+  }
 
   /**
    * Load 3D model and return both geometry and materials (when available)
@@ -736,7 +971,9 @@ export class HexWorldRenderer {
    */
   async renderWorld(world: World): Promise<void> {
     // Clear existing world
-    this.worldGroup.clear();
+    this.tilesGroup.clear();
+    this.addonsGroup.clear();
+    this.validationGroup.clear();
     
     // Clear tile mesh cache
     this.placedTileMeshes.clear();
@@ -760,6 +997,8 @@ export class HexWorldRenderer {
     // Reset world group transformations (no longer needed)
     this.resetWorldGroupTransform();
     
+    // Apply current visibility settings
+    this.updateVisibility();
   }
 
   private async renderTile(worldTile: WorldTile, assetPack: AssetPack): Promise<void> {
@@ -781,6 +1020,9 @@ export class HexWorldRenderer {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       
+      // Store tile data in userData for selection
+      mesh.userData.tileData = worldTile;
+      
       // Position the tile in Three.js coordinate system
       const position = this.hexToThreeJSPosition(worldTile.q, worldTile.r, worldTile.elevation, assetPack);
       mesh.position.copy(position);
@@ -792,16 +1034,16 @@ export class HexWorldRenderer {
         const rotationAxis = this.getTileRotationAxis(assetPack);
         
         if (rotationAxis === 'x') {
-          mesh.rotation.x = rotationRadians;
+          mesh.rotation.x = -rotationRadians; // Negative for clockwise rotation
         } else if (rotationAxis === 'y') {
-          mesh.rotation.y = rotationRadians;
+          mesh.rotation.y = -rotationRadians; // Negative for clockwise rotation
         } else if (rotationAxis === 'z') {
-          mesh.rotation.z = rotationRadians;
+          mesh.rotation.z = -rotationRadians; // Negative for clockwise rotation
         }
       }
       
-      // Add to world group
-      this.worldGroup.add(mesh);
+      // Add to tiles group
+      this.tilesGroup.add(mesh);
       
       // Cache the placed tile mesh for add-on positioning
       const tileKey = `${worldTile.q},${worldTile.r}`;
@@ -964,7 +1206,7 @@ export class HexWorldRenderer {
       mesh.scale.setScalar(worldAddon.local_scale);
       
       // Add to world group
-      this.worldGroup.add(mesh);
+      this.addonsGroup.add(mesh);
       
     } catch (error) {
       console.error(`Failed to render addon ${worldAddon.addon_id}:`, error);
@@ -1063,5 +1305,203 @@ export class HexWorldRenderer {
    */
   getCoordinateSystemVisibility(): boolean {
     return this.showCoordinateAxes;
+  }
+
+  /**
+   * Enable or disable tile interactivity
+   */
+  setInteractivityEnabled(enabled: boolean): void {
+    this.interactivityEnabled = enabled;
+    
+    if (!enabled) {
+      this.clearAllSelections(); // Clear all selections when disabling
+    }
+  }
+
+  /**
+   * Get current interactivity state
+   */
+  getInteractivityEnabled(): boolean {
+    return this.interactivityEnabled;
+  }
+
+  /**
+   * Set callback for tile selection events
+   */
+  setTileSelectionCallback(callback: (tileInfo: TileInfo | null) => void): void {
+    this.onTileSelectedCallback = callback;
+  }
+
+  /**
+   * Set callback for validation selection events
+   */
+  setValidationSelectionCallback(callback: (validationInfo: EdgeValidationResult | null) => void): void {
+    this.onValidationSelectedCallback = callback;
+  }
+
+  /**
+   * Clear tile selection
+   */
+  clearTileSelection(): void {
+    this.deselectTile();
+  }
+
+  /**
+   * Clear validation selection
+   */
+  clearValidationSelection(): void {
+    this.deselectValidation();
+  }
+
+  /**
+   * Clear all selections
+   */
+  clearAllSelections(): void {
+    this.deselectTile();
+    this.deselectValidation();
+  }
+
+  /**
+   * Toggle tile visibility
+   */
+  setTileVisibility(visible: boolean): void {
+    this.showTiles = visible;
+    this.updateVisibility();
+  }
+
+  /**
+   * Toggle add-on visibility
+   */
+  setAddonVisibility(visible: boolean): void {
+    this.showAddons = visible;
+    this.updateVisibility();
+  }
+
+  /**
+   * Toggle validation visualization
+   */
+  setValidationVisibility(visible: boolean): void {
+    this.showValidation = visible;
+    this.updateVisibility();
+  }
+
+  /**
+   * Get current tile visibility state
+   */
+  getTileVisibility(): boolean {
+    return this.showTiles;
+  }
+
+  /**
+   * Get current addon visibility state
+   */
+  getAddonVisibility(): boolean {
+    return this.showAddons;
+  }
+
+  /**
+   * Get current validation visibility state
+   */
+  getValidationVisibility(): boolean {
+    return this.showValidation;
+  }
+
+  /**
+   * Update visibility of all groups based on current settings
+   */
+  private updateVisibility(): void {
+    this.tilesGroup.visible = this.showTiles;
+    this.addonsGroup.visible = this.showAddons;
+    this.validationGroup.visible = this.showValidation;
+  }
+
+  /**
+   * Run edge validation on the current world and visualize results
+   */
+  async validateAndVisualizeEdges(world: World): Promise<ValidationSummary> {
+    // Clear existing validation visualization
+    this.validationGroup.clear();
+    
+    // Run validation
+    this.currentValidationSummary = this.edgeValidator.validateWorld(world);
+    
+    // Visualize invalid edges
+    await this.visualizeValidationResults(this.currentValidationSummary, world);
+    
+    return this.currentValidationSummary;
+  }
+
+  /**
+   * Clear validation visualization
+   */
+  clearValidationVisualization(): void {
+    this.validationGroup.clear();
+    this.currentValidationSummary = undefined;
+    this.setValidationVisibility(false);
+  }
+
+  /**
+   * Get current validation summary
+   */
+  getCurrentValidationSummary(): ValidationSummary | undefined {
+    return this.currentValidationSummary;
+  }
+
+  /**
+   * Visualize validation results in the 3D scene
+   */
+  private async visualizeValidationResults(summary: ValidationSummary, world: World): Promise<void> {
+    const assetPack = this.assetPackManager.getAssetPack(world.asset_pack);
+    if (!assetPack) {
+      console.warn('Cannot visualize validation: asset pack not found');
+      return;
+    }
+
+    // Only visualize invalid edges
+    const invalidEdges = this.edgeValidator.getInvalidEdges(summary);
+    
+    for (const result of invalidEdges) {
+      await this.createEdgeValidationVisualization(result, assetPack);
+    }
+  }
+
+  /**
+   * Create visualization for a single edge validation result
+   */
+  private async createEdgeValidationVisualization(result: EdgeValidationResult, assetPack: AssetPack): Promise<void> {
+    // Get positions of both tiles
+    const sourcePosition = this.hexToThreeJSPosition(
+      result.sourcePosition.q, 
+      result.sourcePosition.r, 
+      0, // Use base elevation for visualization
+      assetPack
+    );
+    
+    const targetPosition = this.hexToThreeJSPosition(
+      result.targetPosition.q, 
+      result.targetPosition.r, 
+      0, // Use base elevation for visualization
+      assetPack
+    );
+
+    // Calculate midpoint for edge visualization
+    const midpoint = new THREE.Vector3().addVectors(sourcePosition, targetPosition).multiplyScalar(0.5);
+    
+    // Add error icon/marker at midpoint (no connection line needed)
+    const iconGeometry = new THREE.SphereGeometry(0.15);
+    const iconMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.9
+    });
+    
+    const iconMesh = new THREE.Mesh(iconGeometry, iconMaterial);
+    iconMesh.position.copy(midpoint);
+    iconMesh.position.y += 0.3; // Above the surface
+    
+    this.validationGroup.add(iconMesh);
+    
+    // Store validation info for potential tooltips/interaction
+    iconMesh.userData.validationResult = result;
   }
 }

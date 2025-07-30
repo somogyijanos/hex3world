@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { HexWorldRenderer } from '@/renderer/HexWorldRenderer';
+import { HexWorldRenderer, TileInfo } from '@/renderer/HexWorldRenderer';
 import { AssetPackManager } from '@/core/AssetPackManager';
+import { ValidationSummary, EdgeValidationResult } from '@/core/EdgeValidator';
+import { World } from '@/types/index';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Settings, X, RotateCcw } from 'lucide-react';
+import { Loader2, Settings, X, RotateCcw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 // Available worlds for selection
 const AVAILABLE_WORLDS = [
@@ -36,8 +38,25 @@ export default function HexWorldPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWorld, setSelectedWorld] = useState(AVAILABLE_WORLDS[0].id);
   const [showCoordinates, setShowCoordinates] = useState(true);
+  const [showTiles, setShowTiles] = useState(true);
+  const [showAddons, setShowAddons] = useState(true);
+  const [showValidation, setShowValidation] = useState(false);
+  const [interactivityEnabled, setInteractivityEnabled] = useState(false);
+  const [selectedTileInfo, setSelectedTileInfo] = useState<TileInfo | null>(null);
+  const [selectedValidationInfo, setSelectedValidationInfo] = useState<EdgeValidationResult | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Close modal when selections change
+  useEffect(() => {
+    if (!selectedTileInfo && !selectedValidationInfo) {
+      setShowDetailModal(false);
+    }
+  }, [selectedTileInfo, selectedValidationInfo]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationSummary, setValidationSummary] = useState<ValidationSummary | null>(null);
+  const [currentWorldData, setCurrentWorldData] = useState<World | null>(null);
 
   // Dark mode toggle effect
   useEffect(() => {
@@ -67,6 +86,16 @@ export default function HexWorldPage() {
         showGrid: false,
         showCornerAxes: showCoordinates
       }, assetMgr);
+      
+      // Set up tile selection callback
+      hexRenderer.setTileSelectionCallback((tileInfo: TileInfo | null) => {
+        setSelectedTileInfo(tileInfo);
+      });
+      
+      // Set up validation selection callback
+      hexRenderer.setValidationSelectionCallback((validationInfo: EdgeValidationResult | null) => {
+        setSelectedValidationInfo(validationInfo);
+      });
       
       hexRendererRef.current = hexRenderer;
       assetManagerRef.current = assetMgr;
@@ -120,12 +149,14 @@ export default function HexWorldPage() {
       }
       
       await hexRendererRef.current!.renderWorld(worldData);
+      setCurrentWorldData(worldData); // Store world data for validation
       console.log(`Successfully loaded world: ${world.name}`);
       setIsLoading(false);
       
     } catch (error: unknown) {
       console.error(`Failed to load world '${world.name}':`, error);
       setIsLoading(false);
+      setCurrentWorldData(null);
       // Could add error state here to show user-friendly error message
     }
   };
@@ -141,6 +172,74 @@ export default function HexWorldPage() {
     if (hexRendererRef.current) {
       hexRendererRef.current.toggleCoordinateSystem(checked);
     }
+  };
+
+  const handleTileVisibilityToggle = (checked: boolean) => {
+    setShowTiles(checked);
+    
+    if (hexRendererRef.current) {
+      hexRendererRef.current.setTileVisibility(checked);
+    }
+  };
+
+  const handleAddonVisibilityToggle = (checked: boolean) => {
+    setShowAddons(checked);
+    
+    if (hexRendererRef.current) {
+      hexRendererRef.current.setAddonVisibility(checked);
+    }
+  };
+
+  const handleValidationVisibilityToggle = (checked: boolean) => {
+    setShowValidation(checked);
+    
+    if (hexRendererRef.current) {
+      hexRendererRef.current.setValidationVisibility(checked);
+    }
+  };
+
+  const handleInteractivityToggle = (checked: boolean) => {
+    setInteractivityEnabled(checked);
+    
+    if (hexRendererRef.current) {
+      hexRendererRef.current.setInteractivityEnabled(checked);
+    }
+    
+    // Clear selections when disabling
+    if (!checked) {
+      setSelectedTileInfo(null);
+      setSelectedValidationInfo(null);
+    }
+  };
+
+  const handleValidateEdges = async () => {
+    if (!hexRendererRef.current || !currentWorldData) {
+      console.warn('Cannot validate: renderer or world data not available');
+      return;
+    }
+
+    try {
+      setIsValidating(true);
+      const summary = await hexRendererRef.current.validateAndVisualizeEdges(currentWorldData);
+      setValidationSummary(summary);
+      setShowValidation(true); // Auto-show validation results
+      if (hexRendererRef.current) {
+        hexRendererRef.current.setValidationVisibility(true);
+      }
+      console.log('Validation completed:', summary);
+    } catch (error) {
+      console.error('Validation failed:', error);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleClearValidation = () => {
+    if (hexRendererRef.current) {
+      hexRendererRef.current.clearValidationVisualization();
+    }
+    setValidationSummary(null);
+    setShowValidation(false);
   };
 
   const handleCameraReset = () => {
@@ -210,6 +309,211 @@ export default function HexWorldPage() {
   return (
     <div className="w-full h-screen relative bg-background">
       <div ref={rendererRef} className="w-full h-full" />
+      
+      {/* Top-Right Selection Info */}
+      {(selectedTileInfo || selectedValidationInfo) && (
+        <div className="absolute top-4 right-4 z-20">
+          <Card className="p-3 bg-card/95 backdrop-blur-sm shadow-lg border-border/50 min-w-[280px]">
+            <div className="space-y-2">
+              {selectedTileInfo && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-blue-600">Selected Tile</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedTileInfo(null)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span>Coordinates:</span>
+                      <span className="font-mono">({selectedTileInfo.coordinates.q}, {selectedTileInfo.coordinates.r})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Type:</span>
+                      <span className="font-mono text-blue-600">{selectedTileInfo.tileType}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDetailModal(true)}
+                    className="w-full mt-2"
+                  >
+                    View Details
+                  </Button>
+                </div>
+              )}
+              
+              {selectedValidationInfo && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-red-600">Edge Incompatibility</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedValidationInfo(null)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span>Source:</span>
+                      <span className="font-mono">({selectedValidationInfo.sourcePosition.q}, {selectedValidationInfo.sourcePosition.r})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Target:</span>
+                      <span className="font-mono">({selectedValidationInfo.targetPosition.q}, {selectedValidationInfo.targetPosition.r})</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Edges:</span>
+                      <span className="font-mono">{selectedValidationInfo.sourceEdgeIndex} ↔ {selectedValidationInfo.targetEdgeIndex}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDetailModal(true)}
+                    className="w-full mt-2"
+                  >
+                    View Details
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showDetailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-lg shadow-xl border border-border max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold">
+                {selectedTileInfo ? 'Tile Details' : 'Validation Details'}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDetailModal(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+              {selectedTileInfo && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Coordinates</Label>
+                      <div className="font-mono text-lg">({selectedTileInfo.coordinates.q}, {selectedTileInfo.coordinates.r})</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Tile Type</Label>
+                      <div className="font-mono text-lg text-blue-600">{selectedTileInfo.tileType}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Elevation</Label>
+                      <div className="font-mono text-lg">{selectedTileInfo.elevation}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Rotation</Label>
+                      <div className="font-mono text-lg">{selectedTileInfo.rotation * 60}° (step {selectedTileInfo.rotation})</div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">3D Position</Label>
+                    <div className="font-mono text-sm mt-1 space-y-1">
+                      <div>X: {selectedTileInfo.position.x.toFixed(3)}</div>
+                      <div>Y: {selectedTileInfo.position.y.toFixed(3)}</div>
+                      <div>Z: {selectedTileInfo.position.z.toFixed(3)}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {selectedValidationInfo && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="p-3">
+                      <Label className="text-sm font-medium">Source Tile</Label>
+                      <div className="space-y-1 mt-1">
+                        <div className="font-mono">({selectedValidationInfo.sourcePosition.q}, {selectedValidationInfo.sourcePosition.r})</div>
+                        <div className="text-sm text-muted-foreground">{selectedValidationInfo.stepByStep.sourceTileType}</div>
+                        <div className="text-xs">Edge {selectedValidationInfo.sourceEdgeIndex}: ({selectedValidationInfo.sourceEdgeType})</div>
+                      </div>
+                    </Card>
+                    <Card className="p-3">
+                      <Label className="text-sm font-medium">Target Tile</Label>
+                      <div className="space-y-1 mt-1">
+                        <div className="font-mono">({selectedValidationInfo.targetPosition.q}, {selectedValidationInfo.targetPosition.r})</div>
+                        <div className="text-sm text-muted-foreground">{selectedValidationInfo.stepByStep.targetTileType}</div>
+                        <div className="text-xs">Edge {selectedValidationInfo.targetEdgeIndex}: ({selectedValidationInfo.targetEdgeType})</div>
+                      </div>
+                    </Card>
+                  </div>
+
+                  <Card className="p-3">
+                    <Label className="text-sm font-medium mb-2 block">Step-by-Step Validation</Label>
+                    <div className="space-y-3 text-xs">
+                      <div>
+                        <div className="font-medium text-gray-600">Asset Pack Configuration:</div>
+                        <div className="ml-2">Offset: {selectedValidationInfo.stepByStep.assetPackOffset} ({selectedValidationInfo.stepByStep.assetPackOffsetDirection})</div>
+                      </div>
+
+                      <div>
+                        <div className="font-medium text-gray-600">1. Original Edges (from asset pack):</div>
+                        <div className="ml-2 space-y-1">
+                          <div>Source: [{selectedValidationInfo.stepByStep.sourceOriginalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                          <div>Target: [{selectedValidationInfo.stepByStep.targetOriginalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-medium text-gray-600">2. After Undoing Asset Pack Offset ({selectedValidationInfo.stepByStep.assetPackOffsetDirection === 'clockwise' ? '-' : '+'}{selectedValidationInfo.stepByStep.assetPackOffset}):</div>
+                        <div className="ml-2 space-y-1">
+                          <div>Source: [{selectedValidationInfo.stepByStep.sourceAfterOffset.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                          <div>Target: [{selectedValidationInfo.stepByStep.targetAfterOffset.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="font-medium text-gray-600">3. Final Edges (after tile rotation):</div>
+                        <div className="ml-2 space-y-1">
+                          <div>Source: [{selectedValidationInfo.stepByStep.sourceFinalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                          <div>Target: [{selectedValidationInfo.stepByStep.targetFinalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-yellow-50 p-2 rounded">
+                        <div className="font-medium text-gray-600">4. Connection Check:</div>
+                        <div className="ml-2 space-y-1">
+                          <div>Source edge {selectedValidationInfo.sourceEdgeIndex}: ({selectedValidationInfo.sourceEdgeType})</div>
+                          <div>Target edge {selectedValidationInfo.targetEdgeIndex}: ({selectedValidationInfo.targetEdgeType})</div>
+                          <div className="pt-1 border-t">
+                            <span className="font-medium">Result: </span>
+                            <span className={`font-bold ${selectedValidationInfo.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                              {selectedValidationInfo.isValid ? 'COMPATIBLE ✅' : 'INCOMPATIBLE ❌'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Collapsible UI Controls Panel */}
       <div className="absolute top-4 left-4">
@@ -289,6 +593,100 @@ export default function HexWorldPage() {
                     </Label>
                   </div>
 
+                  {/* Tile Visibility Toggle */}
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="tiles"
+                      checked={showTiles}
+                      onCheckedChange={handleTileVisibilityToggle}
+                      disabled={isLoading}
+                    />
+                    <Label 
+                      htmlFor="tiles" 
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Tiles
+                    </Label>
+                  </div>
+
+                  {/* Addon Visibility Toggle */}
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="addons"
+                      checked={showAddons}
+                      onCheckedChange={handleAddonVisibilityToggle}
+                      disabled={isLoading}
+                    />
+                    <Label 
+                      htmlFor="addons" 
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Addons
+                    </Label>
+                  </div>
+
+                  {/* Validation Visibility Toggle */}
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="validation"
+                      checked={showValidation}
+                      onCheckedChange={handleValidationVisibilityToggle}
+                      disabled={isLoading}
+                    />
+                    <Label 
+                      htmlFor="validation" 
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Validation
+                    </Label>
+                  </div>
+
+                  {/* Interactivity Toggle */}
+                  <div className="flex items-center space-x-3">
+                    <Checkbox
+                      id="interactivity"
+                      checked={interactivityEnabled}
+                      onCheckedChange={handleInteractivityToggle}
+                      disabled={isLoading}
+                    />
+                    <Label 
+                      htmlFor="interactivity" 
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Enable Tile Selection
+                    </Label>
+                  </div>
+
+
+
+                  
+
+                  {/* Validate Edges Button */}
+                  <Button
+                    onClick={handleValidateEdges}
+                    disabled={isLoading || !currentWorldData || isValidating}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    {isValidating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                    )}
+                    {isValidating ? 'Validating...' : 'Validate Edges'}
+                  </Button>
+
+                  {/* Clear Validation Button */}
+                  <Button
+                    onClick={handleClearValidation}
+                    disabled={isLoading || !validationSummary}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Clear Validation
+                  </Button>
+
                   {/* Camera Reset */}
                   <Button
                     onClick={handleCameraReset}
@@ -328,6 +726,29 @@ export default function HexWorldPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Validation Results */}
+                  {validationSummary && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Validation</Label>
+                      <div className="p-2 bg-muted/30 rounded text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Edges:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600">{validationSummary.validEdges}</span>
+                            <span className="text-muted-foreground"> valid, </span>
+                            <span className="text-red-600">{validationSummary.invalidEdges}</span>
+                            <span className="text-muted-foreground"> invalid</span>
+                          </div>
+                        </div>
+                        {validationSummary.errors.length > 0 && (
+                          <div className="mt-1 text-red-500 text-xs">
+                            {validationSummary.errors.length} error{validationSummary.errors.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </CollapsibleContent>
             </Card>

@@ -145,6 +145,23 @@ export class AssetPackManager {
     if (!validAxes.includes(c.parallel_edge_direction as string)) {
       throw new AssetPackValidationError(`geometry_config.parallel_edge_direction must be one of: ${validAxes.join(', ')}`, 'geometry_config.parallel_edge_direction');
     }
+
+    // Validate optional edge indexing fields
+    if (c.edge_indexing_offset !== undefined) {
+      if (typeof c.edge_indexing_offset !== 'number' || !Number.isInteger(c.edge_indexing_offset)) {
+        throw new AssetPackValidationError('geometry_config.edge_indexing_offset must be an integer', 'geometry_config.edge_indexing_offset');
+      }
+      if (c.edge_indexing_offset < 0 || c.edge_indexing_offset > 5) {
+        throw new AssetPackValidationError('geometry_config.edge_indexing_offset must be between 0 and 5 (inclusive)', 'geometry_config.edge_indexing_offset');
+      }
+    }
+
+    if (c.edge_indexing_direction !== undefined) {
+      const validDirections = ['clockwise', 'counterclockwise'];
+      if (!validDirections.includes(c.edge_indexing_direction as string)) {
+        throw new AssetPackValidationError(`geometry_config.edge_indexing_direction must be one of: ${validDirections.join(', ')}`, 'geometry_config.edge_indexing_direction');
+      }
+    }
   }
 
   private validatePlacementConfig(config: unknown): void {
