@@ -357,6 +357,13 @@ export class EdgeValidator {
   }
 
   /**
+   * Get only valid edge results
+   */
+  getValidEdges(summary: ValidationSummary): EdgeValidationResult[] {
+    return summary.results.filter(result => result.isValid);
+  }
+
+  /**
    * Get validation statistics
    */
   getStatistics(summary: ValidationSummary): { validPercent: number; invalidPercent: number } {

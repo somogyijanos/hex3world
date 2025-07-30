@@ -1447,28 +1447,35 @@ export class HexWorldRenderer {
     return this.currentValidationSummary;
   }
 
-  /**
+    /**
    * Visualize validation results in the 3D scene
    */
-  private async visualizeValidationResults(summary: ValidationSummary, world: World): Promise<void> {
+private async visualizeValidationResults(summary: ValidationSummary, world: World): Promise<void> {
     const assetPack = this.assetPackManager.getAssetPack(world.asset_pack);
     if (!assetPack) {
       console.warn('Cannot visualize validation: asset pack not found');
       return;
     }
 
-    // Only visualize invalid edges
+    // Visualize both valid and invalid edges
     const invalidEdges = this.edgeValidator.getInvalidEdges(summary);
+    const validEdges = this.edgeValidator.getValidEdges(summary);
     
+    // Create red dots for invalid edges
     for (const result of invalidEdges) {
-      await this.createEdgeValidationVisualization(result, assetPack);
+      await this.createEdgeValidationVisualization(result, assetPack, false);
+    }
+    
+    // Create green dots for valid edges
+    for (const result of validEdges) {
+      await this.createEdgeValidationVisualization(result, assetPack, true);
     }
   }
 
   /**
    * Create visualization for a single edge validation result
    */
-  private async createEdgeValidationVisualization(result: EdgeValidationResult, assetPack: AssetPack): Promise<void> {
+  private async createEdgeValidationVisualization(result: EdgeValidationResult, assetPack: AssetPack, isValid: boolean): Promise<void> {
     // Get positions of both tiles
     const sourcePosition = this.hexToThreeJSPosition(
       result.sourcePosition.q, 
@@ -1487,10 +1494,10 @@ export class HexWorldRenderer {
     // Calculate midpoint for edge visualization
     const midpoint = new THREE.Vector3().addVectors(sourcePosition, targetPosition).multiplyScalar(0.5);
     
-    // Add error icon/marker at midpoint (no connection line needed)
+    // Add icon/marker at midpoint - green for valid, red for invalid
     const iconGeometry = new THREE.SphereGeometry(0.15);
     const iconMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0xff0000,
+      color: isValid ? 0x00ff00 : 0xff0000, // Green for valid, red for invalid
       transparent: true,
       opacity: 0.9
     });

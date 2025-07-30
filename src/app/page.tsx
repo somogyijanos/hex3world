@@ -395,7 +395,9 @@ export default function HexWorldPage() {
               {selectedValidationInfo && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-red-600">Edge Incompatibility</Label>
+                    <Label className={`text-sm font-medium ${selectedValidationInfo.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      {selectedValidationInfo.isValid ? 'Edge Compatibility' : 'Edge Incompatibility'}
+                    </Label>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -439,8 +441,9 @@ export default function HexWorldPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-card rounded-lg shadow-xl border border-border max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="text-lg font-semibold">
-                {selectedTileInfo ? 'Tile Details' : 'Validation Details'}
+              <h2 className={`text-lg font-semibold ${selectedValidationInfo?.isValid ? 'text-green-600' : selectedTileInfo ? '' : 'text-red-600'}`}>
+                {selectedTileInfo ? 'Tile Details' : 
+                 selectedValidationInfo?.isValid ? 'Valid Edge Connection Details' : 'Invalid Edge Connection Details'}
               </h2>
               <Button
                 variant="ghost"
@@ -536,7 +539,7 @@ export default function HexWorldPage() {
                         </div>
                       </div>
 
-                      <div className="bg-yellow-50 p-2 rounded">
+                      <div className={`p-2 rounded ${selectedValidationInfo.isValid ? 'bg-green-50' : 'bg-yellow-50'}`}>
                         <div className="font-medium text-gray-600">4. Connection Check:</div>
                         <div className="ml-2 space-y-1">
                           <div>Source edge {selectedValidationInfo.sourceEdgeIndex}: ({selectedValidationInfo.sourceEdgeType})</div>
