@@ -8,55 +8,55 @@
       "elevation": 0
     },
     {
-      "tile_type": "road-curve-b",
+      "tile_type": "road-curve-c",
       "q": 1,
       "r": 0,
-      "elevation": 0,
-      "rotation": 1
-    },
-    {
-      "tile_type": "road-curve-b", 
-      "q": 0,
-      "r": 1,
       "elevation": 0,
       "rotation": 2
     },
     {
-      "tile_type": "road-curve-b",
-      "q": -1,
+      "tile_type": "road-curve-c",
+      "q": 0,
       "r": 1,
       "elevation": 0,
       "rotation": 3
     },
     {
-      "tile_type": "road-curve-b",
+      "tile_type": "road-curve-c",
       "q": -1,
-      "r": 0,
+      "r": 1,
       "elevation": 0,
       "rotation": 4
     },
     {
-      "tile_type": "road-curve-b",
-      "q": 0,
-      "r": -1,
+      "tile_type": "road-curve-c",
+      "q": -1,
+      "r": 0,
       "elevation": 0,
       "rotation": 5
     },
     {
-      "tile_type": "road-curve-b",
-      "q": 1,
+      "tile_type": "road-curve-c",
+      "q": 0,
       "r": -1,
-      "elevation": 1,
+      "elevation": 0,
       "rotation": 0
     },
     {
+      "tile_type": "road-curve-c",
+      "q": 1,
+      "r": -1,
+      "elevation": 0,
+      "rotation": 1
+    },
+    {
       "tile_type": "hex-grass",
       "q": 2,
       "r": 0,
       "elevation": 0
     },
     {
-      "tile_type": "hex-grass", 
+      "tile_type": "hex-grass",
       "q": 2,
       "r": -1,
       "elevation": 0
@@ -113,102 +113,6 @@
       "tile_type": "hex-grass",
       "q": 2,
       "r": -2,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 3,
-      "r": 0,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 3,
-      "r": -1,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 3,
-      "r": -2,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 2,
-      "r": 1,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 1,
-      "r": 2,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 0,
-      "r": 3,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -1,
-      "r": 3,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -2,
-      "r": 2,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -3,
-      "r": 1,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -3,
-      "r": 0,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -2,
-      "r": -1,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": -1,
-      "r": -2,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 0,
-      "r": -3,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 1,
-      "r": -3,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 2,
-      "r": -3,
-      "elevation": 0
-    },
-    {
-      "tile_type": "hex-grass",
-      "q": 3,
-      "r": -3,
       "elevation": 0
     }
   ],

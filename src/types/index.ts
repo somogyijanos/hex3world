@@ -5,6 +5,8 @@ export interface GeometryConfig {
   tile_up_axis: string;
   parallel_edge_direction: string;
   tile_circumradius: number; // Distance from center to vertex (defines hex size)
+  edge_indexing_offset?: number; // How many steps to rotate logical edge indices to match model orientation (0-5)
+  edge_indexing_direction?: 'clockwise' | 'counterclockwise'; // Direction of edge indexing in the model
 }
 
 // Placement configuration for add-ons
