@@ -815,6 +815,16 @@ Current world state will be shown using this notation:
 - Existing add-ons: "addon-id@(q,r)" (e.g., "tree-simple@(1,0)" means tree-simple add-on at position q=1,r=0)
 - Positions: "(q,r)" coordinates in the hexagonal grid system
 
+VALID TILE OPTIONS WITH NEIGHBOR CONTEXT:
+Each empty position will be shown with detailed neighbor context to help you understand connectivity:
+- Position format: "Position (q,r) [neighbors: direction:tile-type[edge-type], ...]"
+- Direction codes: NE=northeast, E=east, SE=southeast, SW=southwest, W=west, NW=northwest
+- Edge types in brackets show what edge type each neighbor exposes toward this position
+- Valid options format: "tile-id:r# (direction:neighbor_edge→tile_edge)" showing edge type connections
+- Example: "Position (1,0) [neighbors: W:grass-tile[grass], SW:road-tile[road]]:"
+  "  grass-corner:r2 (W:grass→grass, SW:road→road)"
+  This means placing grass-corner with rotation 2 would connect via grass edge to the grass tile's grass edge to the west and via road edge to the road tile's road edge to the southwest
+
 WORLD GENERATION PROCESS:
 The world generation process is an iterative process.
 At each iteration step you will be provided with:
@@ -913,12 +923,8 @@ Add-ons: ${currentWorld.addons.length > 0 ? currentWorld.addons.map(a => `${a.ad
      // Format empty positions
      const emptyPositions = placementOptions.map(posOpt => `(${posOpt.position.q}, ${posOpt.position.r})`).join(', ');
      
-     // Format valid tiles for each position
-     const validTilesDescription = placementOptions.map((posOption, i) => {
-       const pos = posOption.position;
-       const compactOptions = this.compactOptionsNotation(posOption.validOptions);
-       return `Position (${pos.q}, ${pos.r}): ${compactOptions}`;
-     }).join('\n');
+         // Format valid tiles for each position with neighbor connectivity context
+    const validTilesDescription = this.formatPlacementOptionsWithNeighborContext(placementOptions, currentWorld, assetPack);
 
      // Format valid add-ons by unique tile types (not per position)
      const uniqueTileTypes = new Set<string>();
@@ -1076,6 +1082,14 @@ Current world state will be shown using this notation:
 - Existing add-ons: "addon-id@(q,r)" (e.g., "tree-simple@(1,0)" means tree-simple add-on at position q=1,r=0)
 - Positions: "(q,r)" coordinates in the hexagonal grid system
 
+VALID TILE OPTIONS WITH NEIGHBOR CONTEXT:
+Each interior hole position will be shown with detailed neighbor context to help you understand connectivity:
+- Position format: "Position (q,r) [neighbors: direction:tile-type[edge-type], ...]"
+- Direction codes: NE=northeast, E=east, SE=southeast, SW=southwest, W=west, NW=northwest
+- Edge types in brackets show what edge type each neighbor exposes toward this position
+- Valid options format: "tile-id:r# (direction:neighbor_edge→tile_edge)" showing edge type connections
+- Since these are holes with 4+ neighbors, you'll see multiple surrounding tiles to connect with
+
 HOLE FILLING PROCESS:
 This is a specialized phase of world generation focused on filling interior holes (positions with 4+ neighbors).
 At this step you will be provided with:
@@ -1161,12 +1175,8 @@ ${unpopulatableHoles.length > 0 ? `Consider removing nearby tiles: ${currentWorl
     // Format interior hole positions
     const interiorHolePositions = placementOptions.map(posOpt => `(${posOpt.position.q}, ${posOpt.position.r})`).join(', ');
     
-    // Format valid tiles for each hole position
-    const validTilesDescription = placementOptions.map((posOption, i) => {
-      const pos = posOption.position;
-      const compactOptions = this.compactOptionsNotation(posOption.validOptions);
-      return `Position (${pos.q}, ${pos.r}): ${compactOptions} [${posOption.adjacentNeighbors.length} neighbors]`;
-    }).join('\n');
+    // Format valid tiles for each hole position with neighbor connectivity context
+    const validTilesDescription = this.formatPlacementOptionsWithNeighborContext(placementOptions, currentWorld, assetPack);
 
          // Format valid add-ons by unique tile types (not per position)
      const uniqueTileTypes = new Set<string>();
@@ -1227,6 +1237,114 @@ Please output your JSON object now.`;
   }
    
      /**
+   * Format placement options with detailed neighbor connectivity context
+   */
+  private formatPlacementOptionsWithNeighborContext(
+    placementOptions: PositionOptions[], 
+    currentWorld: World, 
+    assetPack: AssetPack
+  ): string {
+    return placementOptions.map((posOption, i) => {
+      const pos = posOption.position;
+      
+      // Show neighbor context - what tiles surround this position
+      const neighborContext = this.getNeighborContextForPosition(pos, currentWorld, assetPack);
+      
+      // Format each valid option with its specific edge connectivity
+      const optionDetails = posOption.validOptions.map(option => {
+        // Get edge connectivity details for this tile option
+        const edgeConnections = this.getEdgeConnectivityForOption(pos, option, currentWorld, assetPack);
+        const connectivityInfo = edgeConnections.length > 0 ? ` (${edgeConnections.join(', ')})` : '';
+        return `${option.tileId}:r${option.rotation}${connectivityInfo}`;
+      }).join(', ');
+      
+      return `Position (${pos.q}, ${pos.r}) ${neighborContext}:\n  ${optionDetails}`;
+    }).join('\n\n');
+  }
+
+  /**
+   * Get neighbor context for a position - what tiles surround it and from which directions
+   */
+  private getNeighborContextForPosition(
+    position: { q: number; r: number }, 
+    currentWorld: World, 
+    assetPack: AssetPack
+  ): string {
+    const neighbors = HexCoordinates.getNeighbors(position);
+    const directions = ['NE', 'E', 'SE', 'SW', 'W', 'NW']; // Clockwise from top-right
+    
+    const neighborInfo: string[] = [];
+    
+    for (let i = 0; i < neighbors.length; i++) {
+      const neighbor = neighbors[i];
+      const existingTile = currentWorld.tiles.find(t => t.q === neighbor.q && t.r === neighbor.r);
+      
+      if (existingTile) {
+        // Get the edge type that this neighbor exposes toward our position
+        const neighborEdgeIndex = (i + 3) % 6; // Opposite edge
+        const tileDefinition = assetPack.tiles.find(t => t.id === existingTile.tile_type);
+        
+        if (tileDefinition) {
+          // Apply rotation to get actual edge
+          const rotatedEdgeIndex = (neighborEdgeIndex - (existingTile.rotation || 0) + 6) % 6;
+          const edgeType = tileDefinition.edges[rotatedEdgeIndex];
+          neighborInfo.push(`${directions[i]}:${existingTile.tile_type}[${edgeType}]`);
+        } else {
+          neighborInfo.push(`${directions[i]}:${existingTile.tile_type}`);
+        }
+      }
+    }
+    
+    return neighborInfo.length > 0 ? `[neighbors: ${neighborInfo.join(', ')}]` : '[no neighbors]';
+  }
+
+  /**
+   * Get edge type connectivity information for a specific tile option at a position
+   */
+  private getEdgeConnectivityForOption(
+    position: { q: number; r: number },
+    option: PlacementOption,
+    currentWorld: World,
+    assetPack: AssetPack
+  ): string[] {
+    const connections: string[] = [];
+    const neighbors = HexCoordinates.getNeighbors(position);
+    const directions = ['NE', 'E', 'SE', 'SW', 'W', 'NW']; // Clockwise from top-right
+    
+    // Get the tile definition for this option
+    const tileDefinition = assetPack.tiles.find(t => t.id === option.tileId);
+    if (!tileDefinition) {
+      return connections;
+    }
+    
+    for (let i = 0; i < neighbors.length; i++) {
+      const neighbor = neighbors[i];
+      const existingTile = currentWorld.tiles.find(t => t.q === neighbor.q && t.r === neighbor.r);
+      
+      if (existingTile) {
+        // Get the edge type that this neighbor exposes toward our position
+        const neighborTileDefinition = assetPack.tiles.find(t => t.id === existingTile.tile_type);
+        if (!neighborTileDefinition) continue;
+        
+        // Calculate neighbor's edge index that faces our position
+        const neighborEdgeIndex = (i + 3) % 6; // Opposite edge
+        const neighborRotatedEdgeIndex = (neighborEdgeIndex - (existingTile.rotation || 0) + 6) % 6;
+        const neighborEdgeType = neighborTileDefinition.edges[neighborRotatedEdgeIndex];
+        
+        // Calculate our tile's edge index that faces this neighbor
+        const ourEdgeIndex = i;
+        const ourRotatedEdgeIndex = (ourEdgeIndex - option.rotation + 6) % 6;
+        const ourEdgeType = tileDefinition.edges[ourRotatedEdgeIndex];
+        
+        // Format the connection: direction:neighbor_edge→our_edge
+        connections.push(`${directions[i]}:${neighborEdgeType}→${ourEdgeType}`);
+      }
+    }
+    
+    return connections;
+  }
+
+  /**
    * Format complete asset pack information for LLM in compact notation
    */
   private formatAssetPackForLLM(assetPack: AssetPack): string {
