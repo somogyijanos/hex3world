@@ -63,6 +63,7 @@ export class SimpleWorldGenerator {
   private llmProvider: BaseLLMProvider | null = null;
   private eventHandlers: GenerationEventHandler[] = [];
   private currentPlan: WorldPlan | null = null; // Store the generation plan
+  private lastTodoProgress: string | null = null; // Store last iteration's progress
 
   constructor(assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -137,6 +138,9 @@ export class SimpleWorldGenerator {
 
       // Create initial world or use existing
       const currentWorld = request.existingWorld || this.worldManager.createWorld(request.assetPackId);
+
+      // Reset progress tracking for new generation
+      this.lastTodoProgress = null;
 
       const maxTiles = request.constraints?.maxTiles || 20;
 
@@ -347,6 +351,11 @@ export class SimpleWorldGenerator {
         }
 
         console.log(`✅ Applied ${tilesRemoved} removals, ${tilesPlaced}/${llmDecision.placements.length} placements, ${currentWorld.addons.length} total addons, world: ${currentWorld.tiles.length}/${maxTiles}`);
+        
+        // Store progress for next iteration
+        if (llmDecision.todoProgress) {
+          this.lastTodoProgress = llmDecision.todoProgress;
+        }
         
         // Report general progress
         if (this.currentPlan) {
@@ -832,6 +841,7 @@ At each iteration step you will be provided with:
 - any other world generation parameters the user has provided and which might influence the world generation process as constraints
 - the asset pack the user has chosen to build the world from
 - the current world state (tiles and add-ons)
+- the world generation plan and any progress from previous iterations - use this context to guide your decisions
 - a set of empty positions on which you are allowed to place tiles in the current iteration step
 - for each such position a set of valid tiles that can be placed there
 - for each such valid tile a set of valid add-ons that can be placed on it
@@ -858,7 +868,10 @@ When choosing and placing a tile you should consider the following:
         - "my-addon-01"
         - "my-addon-02"
         - "my-addon-03"
-- the choice makes sense for the world and the user description
+- the choice makes sense for the world and the user description, especially pay attention
+to the world generation plan and any progress from previous iterations
+- also analyze the valid tiles' neighbor context to understand how they connect to the current world state,
+this is super important as there might be tile types that require a certain connectivity/flow like roads or rivers for example
 - a tile being a valid option means only that it is compatible with the current world state,
 it does not mean that it is a good choice for the world and the user description
 - a tile being a valid option means only that it is compatible with existing tiles,
@@ -881,7 +894,7 @@ YOUR OUTPUT:
 Your output is a JSON object following the following format:
 {
     "reasoning": "explain your placement decisions and current strategy, even if you choose to place nothing",
-    "todoProgress": "describe where we are in executing the world generation plan",
+    "todoProgress": "describe where we are in executing the world generation plan, include what you have done so far and what you are going to do next, also include some reasoning regarding neighbor connectivity (chose this tile because it connects to this and this via these edges)",
     "tiles": [
         {
             "tileId": "my-tile-c",
@@ -952,7 +965,8 @@ Detailed world description: ${this.currentPlan.detailedDescription}
 Todo tasks:
 ${this.currentPlan.todos.map((todo, i) => `${i+1}. ${todo.description}
 - complete when: ${todo.completionCriteria}
-- suggested tiles: ${todo.suggestedTiles?.join(', ')}`).join('\n')}` : 
+- suggested tiles: ${todo.suggestedTiles?.join(', ')}`).join('\n')}
+${this.lastTodoProgress ? `\nLast iteration progress: ${this.lastTodoProgress}` : ''}` : 
     'No world generation plan available - use your best judgment for placement decisions.';
 
      return `ITERATION STEP:
@@ -1097,6 +1111,7 @@ At this step you will be provided with:
 - any other world generation parameters the user has provided and which might influence the world generation process as constraints
 - the asset pack the user has chosen to build the world from
 - the current world state (tiles and add-ons)
+- the world generation plan and any progress from previous iterations - use this context to guide your decisions
 - a set of interior hole positions (positions with 4+ neighbors) on which you are allowed to place tiles
 - for each such position a set of valid tiles that can be placed there
 - for each such valid tile a set of valid add-ons that can be placed on it
@@ -1203,6 +1218,7 @@ ${unpopulatableHoles.length > 0 ? `Consider removing nearby tiles: ${currentWorl
 Detailed world description: ${this.currentPlan.detailedDescription}
 Todo tasks:
 ${this.currentPlan.todos.map((todo, i) => `${i+1}. ${todo.description}`).join('\n')}
+${this.lastTodoProgress ? `\nLast iteration progress: ${this.lastTodoProgress}` : ''}
 ` : 
       'No world generation plan available - use your best judgment for placement decisions.';
 
