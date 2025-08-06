@@ -37,6 +37,23 @@ export interface LLMPlacementDecision {
   removals: TileRemoval[];
   addonPlacements: AddOnPlacement[];
   reasoning: string;
+  todoProgress?: string | null;
+}
+
+// World planning interfaces
+export interface TodoItem {
+  id: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  suggestedTiles?: string[]; // Optional: suggested tiles for this todo (guidance only)
+  completionCriteria: string; // Detailed description of when this TODO can be considered completed
+}
+
+export interface WorldPlan {
+  theme: string;
+  detailedDescription: string; // Highly detailed description of the world (enhanced version of user description)
+  todos: TodoItem[];
+  reasoning: string;
 }
 
 export class SimpleWorldGenerator {
@@ -45,6 +62,7 @@ export class SimpleWorldGenerator {
   private placementCalculator: PlacementOptionsCalculator;
   private llmProvider: BaseLLMProvider | null = null;
   private eventHandlers: GenerationEventHandler[] = [];
+  private currentPlan: WorldPlan | null = null; // Store the generation plan
 
   constructor(assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -121,6 +139,41 @@ export class SimpleWorldGenerator {
       const currentWorld = request.existingWorld || this.worldManager.createWorld(request.assetPackId);
 
       const maxTiles = request.constraints?.maxTiles || 20;
+
+      // PLANNING PHASE: Create initial plan if starting from empty world
+      if (currentWorld.tiles.length === 0) {
+        console.log(`\n📋 PLANNING PHASE: Creating strategic plan...`);
+        
+        this.emitEvent('progress', {
+          stage: 'planning',
+          currentStep: 1,
+          totalSteps: 1,
+          message: 'Creating strategic world plan...',
+          placedTiles: 0,
+          validationErrors: 0,
+          currentWorld
+        });
+
+        this.currentPlan = await this.createWorldPlan(request, assetPack, maxTiles);
+        
+        if (this.currentPlan) {
+          console.log(`✅ TODO-BASED PLAN CREATED:`);
+          console.log(`   Theme: ${this.currentPlan.theme}`);
+          console.log(`   Description: ${this.currentPlan.detailedDescription}`);
+          console.log(`   Total Tasks: ${this.currentPlan.todos.length}`);
+          console.log(`   TODO List:`);
+          this.currentPlan.todos.forEach((todo, i) => {
+            console.log(`     ${i+1}. ${todo.description}`);
+            console.log(`        - complete when: ${todo.completionCriteria}`);
+            console.log(`        - suggested tiles: ${todo.suggestedTiles?.join(', ')}`);
+          });
+        } else {
+          console.log(`⚠️  Failed to create plan, proceeding without one`);
+        }
+      } else {
+        console.log(`ℹ️ Continuing with existing world, skipping planning phase`);
+      }
+
       const maxIterations = 50; // Prevent infinite loops
       let iteration = 0;
 
@@ -156,7 +209,8 @@ export class SimpleWorldGenerator {
         const llmDecision = await this.getLLMPlacementDecision(request, currentWorld, placementOptions, assetPack, maxTiles);
 
         if (!llmDecision || (llmDecision.placements.length === 0 && llmDecision.removals.length === 0)) {
-          console.log('❌ STOPPING: LLM chose no actions (no tiles to place or remove)');
+          const reasoningMsg = llmDecision?.reasoning ? ` - Reasoning: "${llmDecision.reasoning}"` : '';
+          console.log(`❌ STOPPING: LLM chose no actions (no tiles to place or remove)${reasoningMsg}`);
           break;
         }
 
@@ -293,6 +347,21 @@ export class SimpleWorldGenerator {
         }
 
         console.log(`✅ Applied ${tilesRemoved} removals, ${tilesPlaced}/${llmDecision.placements.length} placements, ${currentWorld.addons.length} total addons, world: ${currentWorld.tiles.length}/${maxTiles}`);
+        
+        // Report general progress
+        if (this.currentPlan) {
+          console.log(`📊 World Progress: Theme "${this.currentPlan.theme}", ${currentWorld.tiles.length}/${maxTiles} tiles`);
+          
+          if (llmDecision.todoProgress) {
+            console.log(`   Progress: ${llmDecision.todoProgress}`);
+          }
+          
+          // Show tile variety
+          const tileTypes = new Set(currentWorld.tiles.map(t => t.tile_type));
+          if (tileTypes.size > 0) {
+            console.log(`   Tile Types: ${Array.from(tileTypes).join(', ')}`);
+          }
+        }
       }
 
       // Fill holes iteration - one final pass to identify and fill gaps
@@ -439,7 +508,8 @@ export class SimpleWorldGenerator {
           
           console.log(`✅ Applied ${holesRemoved} removals, filled ${holesFilled}/${fillHolesDecision.placements.length} holes, final world: ${currentWorld.tiles.length}/${maxTiles}`);
         } else {
-          console.log(`ℹ️ No holes selected by LLM for filling`);
+          const reasoningMsg = fillHolesDecision?.reasoning ? ` - Reasoning: "${fillHolesDecision.reasoning}"` : '';
+          console.log(`ℹ️ No holes selected by LLM for filling${reasoningMsg}`);
         }
       } else if (fillHolesOptions.length === 0) {
         console.log(`ℹ️ No interior holes found`);
@@ -541,11 +611,51 @@ export class SimpleWorldGenerator {
         return null;
       }
 
+      // console.log('🤖 LLM Response:', response.message.content);
+
       // Parse LLM response
       return this.parseLLMPlacementResponse(response.message.content, placementOptions, assetPack, currentWorld);
 
     } catch (error) {
       console.error('Error getting LLM placement decision:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create initial world plan using LLM
+   */
+  private async createWorldPlan(
+    request: GenerationRequest,
+    assetPack: AssetPack,
+    maxTiles: number
+  ): Promise<WorldPlan | null> {
+    
+    const systemPrompt = this.createPlanningSystemPrompt();
+    const userPrompt = this.createPlanningUserPrompt(request, assetPack, maxTiles);
+
+    const messages: LLMMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    // console.log('🤖 LLM Planning System Prompt:', systemPrompt);
+    // console.log('🤖 LLM Planning User Prompt:', userPrompt);
+
+    try {
+      const response = await this.llmProvider!.generateResponse(messages, []);
+      
+      if (!response.message.content) {
+        return null;
+      }
+
+      // console.log('🤖 LLM Planning Response:', response.message.content);
+
+      // Parse LLM response
+      return this.parsePlanningResponse(response.message.content, assetPack, maxTiles);
+
+    } catch (error) {
+      console.error('Error getting LLM world plan:', error);
       return null;
     }
   }
@@ -570,12 +680,17 @@ export class SimpleWorldGenerator {
       { role: 'user', content: userPrompt }
     ];
 
+    // console.log('🤖 LLM Fill Holes System Prompt:', systemPrompt);
+    // console.log('🤖 LLM Fill Holes User Prompt:', userPrompt);
+
     try {
       const response = await this.llmProvider!.generateResponse(messages, []);
       
       if (!response.message.content) {
         return null;
       }
+
+      // console.log('🤖 LLM Fill Holes Response:', response.message.content);
 
       // Parse LLM response
       return this.parseLLMPlacementResponse(response.message.content, placementOptions, assetPack, currentWorld);
@@ -590,7 +705,7 @@ export class SimpleWorldGenerator {
     * Create system prompt for the simplified LLM interface
     */
    private createSystemPrompt(): string {
-     return `You are a 3D world generator. You generate 3D worlds based on a user description and a set of hexagonal tiles on which you can place add-ons.
+     return `You are a 3D world generator. You generate 3D worlds based on a user description, a world generation plan, and a set of hexagonal tiles on which you can place add-ons.
 
 TILES:
 You can imagine a tile as a hexagon with a center and 6 sides.
@@ -627,6 +742,22 @@ USER DESCRIPTION:
 The user description is a text that describes the world you should generate.
 Follow this description as a guideline to generate the world at every iteration step.
 
+WORLD GENERATION PLAN:
+The world generation plan aims to provide a detailed plan for the world generation process.
+It should provide:
+- overall theme for the world
+- a highly detailed description of the world which is basically an enhanced version of the user description
+- ordered list of specific tasks to complete in order to build the world
+- each todo item consists mainly in:
+- a description of the task
+- a list of suggested tiles that can be used to complete the task (not a strict list but probably worth considering)
+- the order of the todo items is the order in which the tasks should be completed in order to build the world
+
+Try to stick to this plan as much as possible when making placement decisions but keep in mind:
+the plan doesn't follow edge type constraints as much, you have much more information about compatibility than the plan does
+because you are provided with valid choices for each position. So even if the plan suggests something, keep that in mind
+and try to follow it but you still have to choose from the valid tile choices for each position even if this means contradicting the plan.
+
 WORLD:
 A world is a set of tiles and add-ons.
 Current world state will be shown using this notation:
@@ -646,11 +777,27 @@ At each iteration step you will be provided with:
 - for each such valid tile a set of valid add-ons that can be placed on it
 
 At each iteration step you are allowed to:
-- place a tile on an allowed empty position optionally with a valid add-on on it
+- choose an empty position from the list where you want to place a tile
+which you choose from the valid tile options for that position and optionally
+you can choose a valid add-on for that position from the list
 - remove a tile from a non-empty position (based on positions populated in the world)
 
 When choosing and placing a tile you should consider the following:
 - the tile should be placed on an allowed empty position
+- choose a valid tile from the list of valid tiles for the chosen position including the rotation, for example:
+    - positions (1, 0), (2, 0) and (-1, 1) are valid empty positions
+    - you choose for example (2,0)
+    - for position (2,0) the valid tiles are "my-tile-a:r0,2", "my-tile-b:r*" and "my-tile-c:r2-4"
+    - this means you can choose one of the following tiles:
+        - "my-tile-a" with rotation 0 or 2
+        - "my-tile-b" with rotation 0, 1, 2, 3, 4 or 5
+        - "my-tile-c" with rotation 2 or 4
+    - if you choose for example "my-tile-b" then check which valid add-ons are available for it
+    - for example "my-tile-b" has the following valid add-ons: "my-addon-01", "my-addon-02" and "my-addon-03"
+    - so you can choose one of the following add-ons:
+        - "my-addon-01"
+        - "my-addon-02"
+        - "my-addon-03"
 - the choice makes sense for the world and the user description
 - a tile being a valid option means only that it is compatible with the current world state,
 it does not mean that it is a good choice for the world and the user description
@@ -659,7 +806,7 @@ so if you place multiple tiles which are adjacent to each other,
 you should consider that they might not be compatible with each other
 so try choosing wisely, consider the asset pack
 - be creative, the goal is to generate a world that is interesting, unique and diverse while being coherent with the user description
-- you can also place no tile at all in the current iteration step if you think we are done and we have fulfilled all requirements in the user description
+- you can also place no tile at all in the current iteration step if you think we are done and we have fulfilled all requirements in the user description and the world generation plan
 - there might be a maximum number of tiles the user wants to place, so you should consider that and choose wisely such that you don't exceed that number while still being creative and interesting and coherent with the user description fulfilling all requirements in it
 
 When removing a tile you should consider the following:
@@ -673,6 +820,8 @@ or to relax constraints resulting in holes or no more valid options to place til
 YOUR OUTPUT:
 Your output is a JSON object following the following format:
 {
+    "reasoning": "explain your placement decisions and current strategy, even if you choose to place nothing",
+    "todoProgress": "describe where we are in executing the world generation plan",
     "tiles": [
         {
             "tileId": "my-tile-c",
@@ -740,11 +889,24 @@ Add-ons: ${currentWorld.addons.length > 0 ? currentWorld.addons.map(a => `${a.ad
        })
        .join('\n');
 
+  // Format current world plan
+  const planDescription = this.currentPlan ? 
+    `Theme: ${this.currentPlan.theme}
+Detailed world description: ${this.currentPlan.detailedDescription}
+Todo tasks:
+${this.currentPlan.todos.map((todo, i) => `${i+1}. ${todo.description}
+- complete when: ${todo.completionCriteria}
+- suggested tiles: ${todo.suggestedTiles?.join(', ')}`).join('\n')}` : 
+    'No world generation plan available - use your best judgment for placement decisions.';
+
      return `ITERATION STEP:
 Now let's do the next iteration step.
 
 The user description is:
 ${request.description}
+
+The world generation plan is:
+${planDescription}
 
 The world generation parameters the user has provided and which might influence the world generation process as constraints are:
 Maximum tiles: ${maxTiles} (${remaining} remaining)
@@ -755,13 +917,13 @@ ${assetPackInfo}
 The current world state is:
 ${worldState}
 
-Valid positions:
+Empty positions you can choose to place a tile on:
 ${emptyPositions}
 
-Valid tiles:
+Valid tiles for each of the above empty positions:
 ${validTilesDescription}
 
-Valid add-ons:
+Valid add-ons for each of the above valid tiles:
 ${validAddOnsDescription}
 
 Please output your JSON object now.`;
@@ -843,7 +1005,7 @@ you should consider that they might not be compatible with each other
 so try choosing wisely, consider the asset pack
 - be creative, the goal is to generate a world that is interesting, unique and diverse while being coherent with the user description
 - prioritize holes that create better visual composition and thematic coherence
-- avoid creating monotonous patterns (like all grass) unless specifically required by the description
+- avoid creating monotonous patterns (like same tile type only) unless specifically required by the description
 
 When removing a tile you should consider the following:
 - the tile should be removed from a non-empty position
@@ -858,6 +1020,7 @@ or to relax constraints resulting in impossible holes
 YOUR OUTPUT:
 Your output is a JSON object following the following format:
 {
+    "reasoning": "explain your hole-filling decisions and strategy, even if you choose to place nothing",
     "tiles": [
         {
             "tileId": "my-tile-c",
@@ -925,11 +1088,23 @@ ${unpopulatableHoles.length > 0 ? `Consider removing nearby tiles: ${currentWorl
        })
        .join('\n');
 
+    // Format current world plan as simple guidance
+    const planDescription = this.currentPlan ? 
+      `Theme: ${this.currentPlan.theme}
+Detailed world description: ${this.currentPlan.detailedDescription}
+Todo tasks:
+${this.currentPlan.todos.map((todo, i) => `${i+1}. ${todo.description}`).join('\n')}
+` : 
+      'No world generation plan available - use your best judgment for placement decisions.';
+
     return `HOLE FILLING ITERATION STEP:
 Now let's do the hole filling iteration step to fill interior holes in the world.
 
 The user description is:
 ${request.description}
+
+The world generation plan is:
+${planDescription}
 
 The world generation parameters the user has provided and which might influence the world generation process as constraints are:
 Maximum tiles: ${maxTiles} (${remaining} remaining)
@@ -987,20 +1162,6 @@ Materials: ${assetPack.materials.join(', ')}
 Edge Types: ${edgeTypesInfo}
 Tiles: ${tilesInfo}
 Add-ons: ${addonsInfo}`;
-  }
-
-   /**
-   * Categorize tiles by theme for better LLM understanding
-   */
-  private categorizeTile(tileId: string): string {
-    if (tileId.includes('water')) return 'Water';
-    if (tileId.includes('coast') || tileId.includes('shore')) return 'Coast';
-    if (tileId.includes('road')) return 'Road';
-    if (tileId.includes('river')) return 'River';
-    if (tileId.includes('grass')) return 'Grass';
-    if (tileId.includes('stone')) return 'Stone';
-    if (tileId.includes('sand')) return 'Sand';
-    return 'Other';
   }
 
   /**
@@ -1104,7 +1265,7 @@ Add-ons: ${addonsInfo}`;
         candidatePlacements.push(placement);
       }
 
-            // Second pass: resolve inter-placement conflicts
+      // Second pass: resolve inter-placement conflicts
       // Always run conflict resolution to ensure no invalid edges between new tiles
       const resolvedPlacements = this.resolveInterPlacementConflicts(candidatePlacements, assetPack);
       
@@ -1112,7 +1273,8 @@ Add-ons: ${addonsInfo}`;
         console.log(`🔧 Conflict resolution: ${candidatePlacements.length} → ${resolvedPlacements.length} tiles (removed ${candidatePlacements.length - resolvedPlacements.length} conflicting)`);
       }
       
-      if (resolvedPlacements.length === 0) {
+      // Only override reasoning if conflict resolution actually removed tiles
+      if (resolvedPlacements.length === 0 && candidatePlacements.length > 0) {
         return {
           placements: [],
           removals: [],
@@ -1196,11 +1358,226 @@ Add-ons: ${addonsInfo}`;
         placements: validPlacements,
         removals: validRemovals,
         addonPlacements: validAddonPlacements,
-        reasoning: parsed.reasoning || 'No reasoning provided'
+        reasoning: parsed.reasoning || 'No reasoning provided',
+        todoProgress: parsed.todoProgress || null
       };
 
     } catch (error) {
       console.error('Error parsing LLM response:', error);
+      return null;
+    }
+  }
+
+          /**
+   * Create system prompt for planning
+   */
+  private createPlanningSystemPrompt(): string {
+    return `You are a 3D world planner. You create a so called world generation plan based on a user description, available hexagonal tiles and available add-ons which can be placed on tiles.
+
+
+TILES:
+You can imagine a tile as a hexagon with a center and 6 sides (edges).
+Each of the edges has and edge type.
+The edge types are defined by a set of materials they consist of.
+For each tile in the asset the edge types are listed in clockwise order starting from the top-right edge.
+When placing two tiles adjacent to each other, the edges types of the tiles must be compatible.
+Tiles can be rotated to achieve edge type compatibility by a number of 60 degree steps around the center in clockwise direction (0-5 steps).
+
+ADD-ONS:
+You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
+Not all tiles can have all add-ons placed on them, this issue is handled by tags. Each tile has tags
+and each add on has a list of allowed tags to choose the tile to place it on.
+
+ASSET PACK:
+The asset pack is a set of tiles and add-ons and some meta data.
+The asset pack to build the world from is chosen by the user.
+
+USER DESCRIPTION:
+The user description is a text that describes the world you should plan.
+You should always follow this description as a guideline to plan the world.
+
+WORLD GENERATION PLAN:
+The world generation plan you have to create aims to provide a detailed plan for the world generation process.
+It should provide:
+- overall theme for the world
+- a highly detailed description of the world which is basically an enhanced version of the user description
+- ordered list of specific tasks to complete in order to build the world
+- each todo item consists mainly in:
+    - a description of the task
+    - a list of suggested tiles that can be used to complete the task
+- the order of the todo items is the order in which the tasks should be completed in order to build the world
+
+WORLD:
+A world is a set of tiles and add-ons including information where to place which tile on a hexagonal grid.
+
+WORLD GENERATION PROCESS:
+So you understand what the plan is needed for, here is a detailed description of the world generation process.
+The world generation process is an iterative process.
+At each iteration step an LLM will be provided with:
+- the user description
+- any other world generation parameters the user has provided and which might influence the world generation process as constraints
+- the asset pack the user has chosen to build the world from
+- the current world state (tiles and add-ons)
+- the world generation plan
+- a set of empty positions on which the LLM is allowed to place tiles in the current iteration step
+- for each such position a set of valid tiles that can be placed there
+- for each such valid tile a set of valid add-ons that can be placed on it
+
+At each iteration step the LLM is allowed to:
+- place a tile on an allowed empty position optionally with a valid add-on on it
+- remove a tile from a non-empty position (based on positions populated in the world)
+
+When choosing and placing a tile the LLM should consider the following:
+- the tile should be placed on an allowed empty position
+- the choice makes sense for the world and the user description
+- a tile being a valid option means only that it is compatible with the current world state,
+it does not mean that it is a good choice for the world and the user description
+- a tile being a valid option means only that it is compatible with existing tiles,
+so if the LLM places multiple tiles which are adjacent to each other,
+it should consider that they might not be compatible with each other
+so try choosing wisely, consider the asset pack
+- be creative, the goal is to generate a world that is interesting, unique and diverse while being coherent with the user description
+- continue placing tiles until a satisfying, complete world that matches the user's intent is created
+- if the planned features aren't working with available tiles, adapt and find creative alternatives
+- the plan is guidance - use critical thinking to make the best world possible with what's available
+- there might be a maximum number of tiles the user wants to place, so the LLM should consider that
+and choose wisely such that it doesn't exceed that number while still being creative
+and interesting and coherent with the user description fulfilling all requirements in it
+
+When removing a tile the LLM should consider the following:
+- the tile should be removed from a non-empty position
+- the choice makes sense for the world and the user description
+- sometimes in earlier steps bad choices might have been made,
+so the LLM has the option to remove a tile to fix the world state,
+i.e. to make it more coherent with the user description
+or to relax constraints resulting in holes or no more valid options to place tiles
+
+
+WHAT TO CONSIDER WHEN CREATING THE PLAN:
+- the to do list should be helpful for the LLM to create the world during the generation process, as described above
+- the world the plan conceptualizes should be coherent with the user description
+and it should be possible to create it with the available tiles and add-ons
+- especially the edge compatibility constraints should be considered,
+so include only features in the plan that are compatible with the edge compatibility constraints,
+otherwise the LLM will not be able to create the world during the generation process and will get stuck
+- considering the edge compatibility constraints also means that you have to analyze available tiles
+to see if two tiles can be placed next to each other at all before you include something in the plan that is not possible
+- the plan should be detailed enough to be helpful for the LLM to create the world during the generation process,
+but not too specific to be overwhelming and too much restrictive
+- the generation process is iterative, it will start at position (0,0) on the hexagonal grid
+and at every iteration step the LLM will be provided with a set of empty positions
+on which it is allowed to place tiles in the current iteration step, these will be empty positions
+which are adjacent to already placed tiles, so the plan should consider that the world grows from the center outwards
+(not super regular in detail but on a higher level it is definitely true)
+- the order of the todo items is the order in which the tasks should be completed in order to build the world,
+so consider that when planning the tasks to avoid impossible worlds
+
+YOUR OUTPUT:
+Your output is a JSON object following the following format:
+{
+    "theme": "string",
+    "detailedDescription": "string",
+    "todos": [
+        {
+            "id": "string",
+            "description": "string",
+            "status": "pending",
+            "suggestedTiles": ["string"],
+            "completionCriteria": "string"
+        }
+    ],
+    "reasoning": "string"
+}
+
+You should ONLY output the JSON object, nothing else.
+
+
+PLANNING:
+Now let's create a strategic world generation plan based on the user description and available asset pack.
+Don't forget to analyze the available tiles and their edge compatibility to create a realistic plan.
+Especially if you suggest tiles to place, consider what tiles can be placed next to each other at all.`;
+  }
+
+  /**
+   * Create user prompt for planning
+   */
+  private createPlanningUserPrompt(request: GenerationRequest, assetPack: AssetPack, maxTiles: number): string {
+    
+    return `The user description is:
+${request.description}
+
+The world generation parameters:
+Maximum tiles: ${maxTiles}
+
+The asset pack to work with is:
+Name: ${assetPack.id}
+
+The available tiles are:
+${assetPack.tiles.map(tile => {
+      const edges = tile.edges.join(',');
+      const tags = tile.tags.length > 0 ? ` #${tile.tags.join(',')}` : '';
+      return `${tile.id}[${edges}]${tags}`;
+    }).join(', ')} // in compact notation like "tile-id[edge0,edge1,edge2,edge3,edge4,edge5] #tag1,tag2"
+
+The available add-ons are:
+${assetPack.addons.map(addon => {
+      const tileTags = addon.placement.tile_tags.join(',');
+      const addonTags = addon.tags.length > 0 ? ` #${addon.tags.join(',')}` : '';
+      return `${addon.id}(${tileTags})${addonTags}`;
+    }).join(', ')} // in compact notation like "addon-id(required_tile_tags) #addon_tags"`;
+  }
+
+     /**
+    * Parse LLM response into world plan
+    */
+   private parsePlanningResponse(response: string, assetPack: AssetPack, maxTiles: number): WorldPlan | null {
+     try {
+       // Try to extract JSON from response (handle markdown code blocks)
+       const jsonMatch = response.match(/\{[\s\S]*\}/);
+       if (!jsonMatch) {
+         console.log('❌ No JSON found in LLM planning response');
+         return null;
+       }
+
+       const parsed = JSON.parse(jsonMatch[0]);
+
+            // Validate required fields
+      if (typeof parsed.theme !== 'string' || typeof parsed.detailedDescription !== 'string' || !Array.isArray(parsed.todos) || parsed.todos.length === 0) {
+        console.log('❌ Invalid world plan JSON: missing required fields (theme, detailedDescription, todos)');
+        return null;
+      }
+
+      // Validate todos
+      for (const todo of parsed.todos) {
+        if (typeof todo.id !== 'string' || typeof todo.description !== 'string' || typeof todo.completionCriteria !== 'string') {
+          console.log('❌ Invalid todo in world plan JSON: missing id, description, or completionCriteria');
+          return null;
+        }
+        if (todo.suggestedTiles && !Array.isArray(todo.suggestedTiles)) {
+          console.log('❌ Invalid suggestedTiles in todo');
+          return null;
+        }
+        
+        // Status is optional - set default if not provided
+        if (!todo.status) {
+          todo.status = 'pending';
+        }
+      }
+
+      if (typeof parsed.reasoning !== 'string') {
+        console.log('❌ Invalid reasoning in world plan JSON');
+        return null;
+      }
+
+      return {
+        theme: parsed.theme,
+        detailedDescription: parsed.detailedDescription,
+        todos: parsed.todos,
+        reasoning: parsed.reasoning
+      };
+
+    } catch (error) {
+      console.error('Error parsing LLM world plan response:', error);
       return null;
     }
   }
@@ -1354,6 +1731,8 @@ Add-ons: ${addonsInfo}`;
     return compatibleAddons;
   }
 
+
+
   /**
    * Apply add-on placements to the world
    */
@@ -1405,4 +1784,6 @@ Add-ons: ${addonsInfo}`;
     
     return failures;
   }
+
+
 } 
