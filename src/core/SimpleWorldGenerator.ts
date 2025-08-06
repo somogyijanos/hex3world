@@ -590,61 +590,109 @@ export class SimpleWorldGenerator {
     * Create system prompt for the simplified LLM interface
     */
    private createSystemPrompt(): string {
-     return `You are a creative world generator. Your goal is to build INTERESTING, VARIED worlds that match the description.
+     return `You are a 3D world generator. You generate 3D worlds based on a user description and a set of hexagonal tiles on which you can place add-ons.
 
-🎨 CREATIVITY GUIDELINES:
-- AVOID placing only on the same tile type (unless it's explicitly stated in the description) - that's boring!  
-- CREATE VARIETY by mixing different tile types when possible but only as long as it makes sense for the world and the description
-- BUILD COHERENT SCENES that tell a story
-- CONSIDER the description - fishing villages need water, towns need roads, etc.
+TILES:
+You can imagine a tile as a hexagon with a center and 6 sides.
+The tiles when placed have an id, a position and a rotation.
+Valid tiles provided consist of the tile id and the rotation.
+The position is defined by a q and r coordinate in the hexagon grid.
+The rotation is defined by an integer between 0 and 5 meaning the number of 60 degree steps around the center in clockwise direction.
+For valid tiles a compact notation "tile-id:rotation" is used in the following format:
+- "tile-id" is the id of the tile, e.g. "my-tile-c"
+- "rotation" is the allowed rotation(s) of the tile
+    - if a single rotation is allowed, it is specified as "r0", "r1", "r2", "r3", "r4" or "r5"
+    - if multiple rotations are allowed, they are specified as "r0,2,4" (meaning rotations 0, 2 and 4 are allowed)
+    - if all rotations are allowed, it is specified as "r*"
+- so a valid tile is specified e.g. "my-tile-c:r1,5" or "my-tile-c:r*" or "my-tile-c:r3"
 
-🔧 TECHNICAL RULES:
-- You can ONLY place tiles at the EXACT positions listed below (Position 1, Position 2, etc.)
-- You can ONLY choose an EXACT tile:rotation combination based on the "Available" list for each position
-- You can ALSO remove existing tiles when needed to resolve constraints or improve the world
-- COMPACT NOTATION: 
-  • "tile:r*" = all rotations (0-5) available
-  • "tile:r0-3" = rotations 0,1,2,3 available  
-  • "tile:r0,2,4" = only rotations 0,2,4 available
-- If multiple rotations are shown for a tile, pick ANY rotation (e.g. if "my-tile-c:r0,2,4" then you can use my-tile-c:r0, my-tile-c:r2, or my-tile-c:r4)
-- You can place tiles at ALL available positions, or leave some empty strategically
-- All compatibility is pre-validated - just pick from the given options
-- ADDON PLACEMENT: You can also place add-ons on tiles you place (not on existing tiles unless specified)
-- Add-ons require compatible tile tags - use only addons shown as compatible
-- TILE REMOVAL: You can remove existing tiles to resolve placement conflicts or improve the world
+ADD-ONS:
+You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
+The add-ons when placed have an id and a position (determining which tile they are placed on).
+The position is defined by a q and r coordinate in the hexagon grid.
+Valid add-ons provided consist of the add-on id.
+For valid add-ons a compact notation is used in the following format:
+- "tile-id: addon1, addon2" (shows which add-on(s) can be placed on specific tile type)
 
-🎯 WORLD BUILDING STRATEGY:
-- You can place tiles at ALL available positions in one iteration
-- OR strategically leave some positions empty to create better layouts later
-- Think about overall composition - sometimes spacing creates better results
+ASSET PACK:
+The asset pack is a set of tiles and add-ons and some meta data.
+Existing tiles and existing add-ons in the world, as well as valid tiles and valid add-ons in the current iteration step,
+are all originating from the asset pack the user has chosen to build the world from.
+The asset pack information will be provided in compact notation:
+- Edge Types: "type[materials] → compatible_types" (e.g., "road[road] → road" means road edges connect to road edges)
+- Tiles: "id[edge0,edge1,edge2,edge3,edge4,edge5] #tag1,tag2" (6 edges clockwise from top-right, with tags)
+- Add-ons: "id(required_tile_tags) #addon_tags" (parentheses show which tile tags are required for placement)
 
-REMEMBER: 
-- Use ONLY the exact positions listed above (the q,r coordinates from Position 1, Position 2, etc.)
-- Use ONLY tile names and rotations shown in the compact notation
-- For example: If "Position 1: (0, 1)" shows "my-tile-c:r0,2,4" you can place "my-tile-c" with rotation 0, 2, or 4 at position (0, 1)
+USER DESCRIPTION:
+The user description is a text that describes the world you should generate.
+Follow this description as a guideline to generate the world at every iteration step.
 
-Respond with JSON:
+WORLD:
+A world is a set of tiles and add-ons.
+Current world state will be shown using this notation:
+- Existing tiles: "tile-type@(q,r):r#" (e.g., "grass-tile@(0,0):r2" means grass-tile at position q=0,r=0 with rotation 2)
+- Existing add-ons: "addon-id@(q,r)" (e.g., "tree-simple@(1,0)" means tree-simple add-on at position q=1,r=0)
+- Positions: "(q,r)" coordinates in the hexagonal grid system
+
+WORLD GENERATION PROCESS:
+The world generation process is an iterative process.
+At each iteration step you will be provided with:
+- the user description
+- any other world generation parameters the user has provided and which might influence the world generation process as constraints
+- the asset pack the user has chosen to build the world from
+- the current world state (tiles and add-ons)
+- a set of empty positions on which you are allowed to place tiles in the current iteration step
+- for each such position a set of valid tiles that can be placed there
+- for each such valid tile a set of valid add-ons that can be placed on it
+
+At each iteration step you are allowed to:
+- place a tile on an allowed empty position optionally with a valid add-on on it
+- remove a tile from a non-empty position (based on positions populated in the world)
+
+When choosing and placing a tile you should consider the following:
+- the tile should be placed on an allowed empty position
+- the choice makes sense for the world and the user description
+- a tile being a valid option means only that it is compatible with the current world state,
+it does not mean that it is a good choice for the world and the user description
+- a tile being a valid option means only that it is compatible with existing tiles,
+so if you place multiple tiles which are adjacent to each other,
+you should consider that they might not be compatible with each other
+so try choosing wisely, consider the asset pack
+- be creative, the goal is to generate a world that is interesting, unique and diverse while being coherent with the user description
+- you can also place no tile at all in the current iteration step if you think we are done and we have fulfilled all requirements in the user description
+- there might be a maximum number of tiles the user wants to place, so you should consider that and choose wisely such that you don't exceed that number while still being creative and interesting and coherent with the user description fulfilling all requirements in it
+
+When removing a tile you should consider the following:
+- the tile should be removed from a non-empty position
+- the choice makes sense for the world and the user description
+- sometimes in earlier steps bad choices might have been made,
+so you have the option to remove a tile to fix the world state,
+i.e. to make it more coherent with the user description
+or to relax constraints resulting in holes or no more valid options to place tiles
+
+YOUR OUTPUT:
+Your output is a JSON object following the following format:
 {
-  "placements": [
-    {
-      "position": {"q": 0, "r": 0}, 
-      "tileId": "my-tile-c",
-      "rotation": 0
-    }
-  ],
-  "removals": [
-    {
-      "position": {"q": 1, "r": 0}
-    }
-  ],
-  "addonPlacements": [
-    {
-      "position": {"q": 0, "r": 0},
-      "addonId": "my-addon-01"
-    }
-  ],
-  "reasoning": "I chose my-tile-c at (0,0) to start a ..., removed the tile at (1,0) that was blocking better connections, and added my-addon-01 for ..."
-}`;
+    "tiles": [
+        {
+            "tileId": "my-tile-c",
+            "position": {"q": 2, "r": 1},
+            "rotation": 0
+        }
+    ],
+    "add-ons": [
+        {
+            "addonId": "my-addon-01",
+            "position": {"q": 2, "r": 1}
+        }
+    ],
+    "removals": [
+        {
+            "position": {"q": 1, "r": 0}
+        }
+    ]
+}
+You should ONLY output the JSON object, nothing else.`;
    }
 
      /**
@@ -653,119 +701,183 @@ Respond with JSON:
    private createUserPrompt(request: GenerationRequest, currentWorld: World, placementOptions: PositionOptions[], assetPack: AssetPack, maxTiles: number): string {
      const isEmpty = currentWorld.tiles.length === 0;
      const remaining = maxTiles - currentWorld.tiles.length;
-     const worldDescription = `🎯 Target: "${request.description}"
-🎲 Tiles: ${currentWorld.tiles.length}/${maxTiles} (${remaining} remaining)
-🎨 Addons: ${currentWorld.addons.length} total
+     
+     // Format complete asset pack information
+     const assetPackInfo = this.formatAssetPackForLLM(assetPack);
+     
+     // Format current world state
+     const worldState = isEmpty ? 
+       'Empty world - no tiles or add-ons placed yet' :
+       `Tiles: ${currentWorld.tiles.map(t => `${t.tile_type}@(${t.q},${t.r}):r${t.rotation || 0}`).join(', ')}
+Add-ons: ${currentWorld.addons.length > 0 ? currentWorld.addons.map(a => `${a.addon_id}@(${a.q},${a.r})`).join(', ') : 'none'}`;
 
-${isEmpty ? '🌟 STARTING FRESH - This is the very first tile! Only position (0,0) exists. Place ONE tile there to begin the world.' : 
-`Current world: ${currentWorld.tiles.map(t => `${t.tile_type}@(${t.q},${t.r}):r${t.rotation || 0}`).join(', ')}
-${currentWorld.addons.length > 0 ? `Existing addons: ${currentWorld.addons.map(a => `${a.addon_id}@(${a.q},${a.r})`).join(', ')}` : ''}
-🗑️ Removable tiles: You can remove any existing tile if it improves the world design or resolves placement constraints`}
-
-💡 Available placement options:`;
-
-     const optionsDescription = placementOptions.map((posOption, i) => {
+     // Format empty positions
+     const emptyPositions = placementOptions.map(posOpt => `(${posOpt.position.q}, ${posOpt.position.r})`).join(', ');
+     
+     // Format valid tiles for each position
+     const validTilesDescription = placementOptions.map((posOption, i) => {
        const pos = posOption.position;
-       
-       // Group options by theme for better presentation
-       const byTheme = new Map();
-       posOption.validOptions.forEach(opt => {
-         const theme = this.categorizeTile(opt.tileId);
-         if (!byTheme.has(theme)) byTheme.set(theme, []);
-         byTheme.get(theme).push(opt);
-       });
-       
-       // Show ALL options in compact notation
        const compactOptions = this.compactOptionsNotation(posOption.validOptions);
-       
-       // Show available addons for sample tiles
-       const sampleTiles = posOption.validOptions.slice(0, 3); // Show addons for first 3 tiles as examples
-       const addonExamples = sampleTiles.map(opt => {
-         const compatibleAddons = this.getCompatibleAddons(opt.tileId, assetPack);
+       return `Position (${pos.q}, ${pos.r}): ${compactOptions}`;
+     }).join('\n');
+
+     // Format valid add-ons by unique tile types (not per position)
+     const uniqueTileTypes = new Set<string>();
+     placementOptions.forEach(posOption => {
+       posOption.validOptions.forEach(opt => {
+         uniqueTileTypes.add(opt.tileId);
+       });
+     });
+     
+     const validAddOnsDescription = Array.from(uniqueTileTypes)
+       .sort()
+       .map(tileId => {
+         const compatibleAddons = this.getCompatibleAddons(tileId, assetPack);
          if (compatibleAddons.length > 0) {
-           return `${opt.tileId} → addons: ${compatibleAddons.slice(0, 3).map(a => a.addonId).join(', ')}${compatibleAddons.length > 3 ? '...' : ''}`;
+           return `${tileId}: ${compatibleAddons.map(a => a.addonId).join(', ')}`;
          }
-         return `${opt.tileId} → no addons`;
-       }).join(', ');
-       
-       return `Position ${i + 1}: (${pos.q}, ${pos.r}) - ${posOption.validOptions.length} total options
-  Available: ${compactOptions}
-  ${addonExamples ? `Sample addons: ${addonExamples}` : ''}`;
-     }).join('\n\n');
+         return `${tileId}: none`;
+       })
+       .join('\n');
 
-     const guidance = isEmpty ? 
-       `\n\n🎯 FIRST TILE: Place exactly ONE tile at position (0,0) to start the world. Choose something that fits "${request.description}" and can expand well (like a junction for crossroads, water for lakes, etc.). Consider adding an appropriate addon!` :
-       `\n\n🎨 You have ${remaining} tiles remaining. Consider:\n- Filling positions strategically based on remaining tile budget\n- Leaving some positions empty for future expansion\n- Creating coherent themes and connections\n- Adding addons to tiles for variety and detail\n- ${remaining <= 3 ? 'NEARLY DONE - Choose final tiles carefully!' : 'Avoid boring all-grass worlds!'}`;
+     return `ITERATION STEP:
+Now let's do the next iteration step.
 
-         return worldDescription + '\n\n' + optionsDescription + guidance;
+The user description is:
+${request.description}
+
+The world generation parameters the user has provided and which might influence the world generation process as constraints are:
+Maximum tiles: ${maxTiles} (${remaining} remaining)
+
+The asset pack we are using is:
+${assetPackInfo}
+
+The current world state is:
+${worldState}
+
+Valid positions:
+${emptyPositions}
+
+Valid tiles:
+${validTilesDescription}
+
+Valid add-ons:
+${validAddOnsDescription}
+
+Please output your JSON object now.`;
   }
 
   /**
    * Create system prompt for hole-filling
    */
   private createFillHolesSystemPrompt(request: GenerationRequest, assetPack: AssetPack): string {
-    return `You are a world generator. Your goal is to fill INTERIOR HOLES (positions with 4+ neighbors) or remove tiles to resolve impossible holes in the world to make it more interesting and varied.
+    return `You are a 3D world generator specialized in filling interior holes. You generate 3D worlds based on a user description and a set of hexagonal tiles on which you can place add-ons.
 
-🎨 CREATIVITY GUIDELINES:
-- AVOID placing only grass tiles - that's boring!  
-- CREATE VARIETY by mixing different tile types when possible
-- Use water, roads, rivers, coastlines, and special terrain when available
-- BUILD COHERENT SCENES that tell a story
-- CONSIDER the description - fishing villages need water, towns need roads, etc.
+TILES:
+You can imagine a tile as a hexagon with a center and 6 sides.
+The tiles when placed have an id, a position and a rotation.
+Valid tiles provided consist of the tile id and the rotation.
+The position is defined by a q and r coordinate in the hexagon grid.
+The rotation is defined by an integer between 0 and 5 meaning the number of 60 degree steps around the center in clockwise direction.
+For valid tiles a compact notation "tile-id:rotation" is used in the following format:
+- "tile-id" is the id of the tile, e.g. "my-tile-c"
+- "rotation" is the allowed rotation(s) of the tile
+    - if a single rotation is allowed, it is specified as "r0", "r1", "r2", "r3", "r4" or "r5"
+    - if multiple rotations are allowed, they are specified as "r0,2,4" (meaning rotations 0, 2 and 4 are allowed)
+    - if all rotations are allowed, it is specified as "r*"
+- so a valid tile is specified e.g. "my-tile-c:r1,5" or "my-tile-c:r*" or "my-tile-c:r3"
 
-🔧 TECHNICAL RULES:
-- You can ONLY place tiles at the EXACT positions listed below (Position 1, Position 2, etc.)
-- You can ONLY use EXACT tile:rotation combinations from the "Available" list for each position
-- You can ALSO remove existing tiles when holes have no valid placement options
-- COMPACT NOTATION: 
-  • "tile:r*" = all rotations (0-5) available
-  • "tile:r0-3" = rotations 0,1,2,3 available  
-  • "tile:r0,2,4" = only rotations 0,2,4 available
-- Pick ANY rotation shown for a tile (e.g. if "road-junction-d:r0,2,4" then you can use r0, r2, or r4)
-- You can place tiles at ALL available positions, or leave some empty strategically
-- All compatibility is pre-validated - just pick from the given options
-- ADDON PLACEMENT: You can also place add-ons on tiles you place (not on existing tiles unless specified)
-- Add-ons require compatible tile tags - use only addons shown as compatible
-- TILE REMOVAL: Remove existing tiles to resolve impossible holes or improve overall design
+ADD-ONS:
+You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
+The add-ons when placed have an id and a position (determining which tile they are placed on).
+The position is defined by a q and r coordinate in the hexagon grid.
+Valid add-ons provided consist of the add-on id.
+For valid add-ons a compact notation is used in the following format:
+- "tile-id: addon1, addon2" (shows which add-on(s) can be placed on specific tile type)
 
-🎯 WORLD BUILDING STRATEGY:
-- You can place tiles at ALL available positions in one iteration
-- OR strategically leave some positions empty to create better layouts later
-- For fishing villages: Look for coast, water, and shore tiles
-- For towns/villages: Use roads, paths, and varied terrain  
-- For natural areas: Mix grass with water features, elevation changes
-- For farms: Use road networks connecting different areas
-- Think about overall composition - sometimes spacing creates better results
+ASSET PACK:
+The asset pack is a set of tiles and add-ons and some meta data.
+Existing tiles and existing add-ons in the world, as well as valid tiles and valid add-ons in the current iteration step,
+are all originating from the asset pack the user has chosen to build the world from.
+The asset pack information will be provided in compact notation:
+- Edge Types: "type[materials] → compatible_types" (e.g., "road[road] → road" means road edges connect to road edges)
+- Tiles: "id[edge0,edge1,edge2,edge3,edge4,edge5] #tag1,tag2" (6 edges clockwise from top-right, with tags)
+- Add-ons: "id(required_tile_tags) #addon_tags" (parentheses show which tile tags are required for placement)
 
-Available in ${assetPack.id}: hex-grass, hex-water, coast-a, road-straight-a, river-straight-a, and many more specialized tiles.
+USER DESCRIPTION:
+The user description is a text that describes the world you should generate.
+Follow this description as a guideline to generate the world at every iteration step.
 
-REMEMBER: 
-- Use ONLY the exact positions listed above (the q,r coordinates from Position 1, Position 2, etc.)
-- Use ONLY tile names and rotations shown in the compact notation
-- For example: If "Position 1: (0, 1)" shows "road-junction-d:r0,2,4" you can place "road-junction-d" with rotation 0, 2, or 4 at position (0, 1)
+WORLD:
+A world is a set of tiles and add-ons.
+Current world state will be shown using this notation:
+- Existing tiles: "tile-type@(q,r):r#" (e.g., "grass-tile@(0,0):r2" means grass-tile at position q=0,r=0 with rotation 2)
+- Existing add-ons: "addon-id@(q,r)" (e.g., "tree-simple@(1,0)" means tree-simple add-on at position q=1,r=0)
+- Positions: "(q,r)" coordinates in the hexagonal grid system
 
-Respond with JSON:
+HOLE FILLING PROCESS:
+This is a specialized phase of world generation focused on filling interior holes (positions with 4+ neighbors).
+At this step you will be provided with:
+- the user description
+- any other world generation parameters the user has provided and which might influence the world generation process as constraints
+- the asset pack the user has chosen to build the world from
+- the current world state (tiles and add-ons)
+- a set of interior hole positions (positions with 4+ neighbors) on which you are allowed to place tiles
+- for each such position a set of valid tiles that can be placed there
+- for each such valid tile a set of valid add-ons that can be placed on it
+- positions that are impossible to fill due to edge constraints
+
+At this step you are allowed to:
+- place a tile on an allowed interior hole position optionally with a valid add-on on it
+- remove a tile from a non-empty position to resolve impossible holes or improve the world design
+
+When choosing and placing a tile in holes you should consider the following:
+- the tile should be placed on an allowed interior hole position
+- the choice makes sense for the world and the user description
+- focus on filling holes that improve connectivity and coherence
+- a tile being a valid option means only that it is compatible with the current world state,
+it does not mean that it is a good choice for the world and the user description
+- a tile being a valid option means only that it is compatible with existing tiles,
+so if you place multiple tiles which are adjacent to each other,
+you should consider that they might not be compatible with each other
+so try choosing wisely, consider the asset pack
+- be creative, the goal is to generate a world that is interesting, unique and diverse while being coherent with the user description
+- prioritize holes that create better visual composition and thematic coherence
+- avoid creating monotonous patterns (like all grass) unless specifically required by the description
+
+When removing a tile you should consider the following:
+- the tile should be removed from a non-empty position
+- the choice makes sense for the world and the user description
+- remove tiles near impossible holes to create new placement opportunities
+- remove tiles that break thematic coherence or create visual clutter
+- sometimes in earlier steps bad choices might have been made,
+so you have the option to remove a tile to fix the world state,
+i.e. to make it more coherent with the user description
+or to relax constraints resulting in impossible holes
+
+YOUR OUTPUT:
+Your output is a JSON object following the following format:
 {
-  "placements": [
-    {
-      "position": {"q": 0, "r": 0}, 
-      "tileId": "road-junction-d",
-      "rotation": 0
-    }
-  ],
-  "removals": [
-    {
-      "position": {"q": 1, "r": 0}
-    }
-  ],
-  "addonPlacements": [
-    {
-      "position": {"q": 0, "r": 0},
-      "addonId": "tree-01"
-    }
-  ],
-  "reasoning": "I filled the hole at (0,0) with a road junction and removed the tile at (1,0) that was blocking better connections"
-}`;
+    "tiles": [
+        {
+            "tileId": "my-tile-c",
+            "position": {"q": 2, "r": 1},
+            "rotation": 0
+        }
+    ],
+    "add-ons": [
+        {
+            "addonId": "my-addon-01",
+            "position": {"q": 2, "r": 1}
+        }
+    ],
+    "removals": [
+        {
+            "position": {"q": 1, "r": 0}
+        }
+    ]
+}
+You should ONLY output the JSON object, nothing else.`;
   }
 
   /**
@@ -773,73 +885,111 @@ Respond with JSON:
    */
   private createFillHolesUserPrompt(request: GenerationRequest, currentWorld: World, placementOptions: PositionOptions[], unpopulatableHoles: PositionOptions[], assetPack: AssetPack, maxTiles: number): string {
     const remaining = maxTiles - currentWorld.tiles.length;
-    const worldDescription = `🕳️ HOLE FILLING PHASE for: "${request.description}"
-🎲 Tiles: ${currentWorld.tiles.length}/${maxTiles} (${remaining} remaining slots)
-🎨 Addons: ${currentWorld.addons.length} total
+    
+         // Format complete asset pack information
+     const assetPackInfo = this.formatAssetPackForLLM(assetPack);
+    
+    // Format current world state
+    const worldState = `Tiles: ${currentWorld.tiles.map(t => `${t.tile_type}@(${t.q},${t.r}):r${t.rotation || 0}`).join(', ')}
+Add-ons: ${currentWorld.addons.length > 0 ? currentWorld.addons.map(a => `${a.addon_id}@(${a.q},${a.r})`).join(', ') : 'none'}
 
-🗺️ Current world: ${currentWorld.tiles.map(t => `${t.tile_type}@(${t.q},${t.r}):r${t.rotation || 0}`).join(', ')}
-${currentWorld.addons.length > 0 ? `🎯 Existing addons: ${currentWorld.addons.map(a => `${a.addon_id}@(${a.q},${a.r})`).join(', ')}` : ''}
+IMPOSSIBLE HOLES (no valid tiles due to edge constraints): ${unpopulatableHoles.length > 0 ? unpopulatableHoles.map(hole => `(${hole.position.q},${hole.position.r})`).join(', ') : 'none'}
+${unpopulatableHoles.length > 0 ? `Consider removing nearby tiles: ${currentWorld.tiles.filter(t => unpopulatableHoles.some(hole => Math.abs(t.q - hole.position.q) + Math.abs(t.r - hole.position.r) <= 2)).map(t => `${t.tile_type}@(${t.q},${t.r})`).join(', ')}` : ''}`;
 
-${unpopulatableHoles.length > 0 ? `⚠️ IMPOSSIBLE HOLES (no valid tiles due to edge constraints): ${unpopulatableHoles.map(hole => `(${hole.position.q},${hole.position.r})`).join(', ')}
-   Consider removing nearby tiles: ${currentWorld.tiles.filter(t => unpopulatableHoles.some(hole => Math.abs(t.q - hole.position.q) + Math.abs(t.r - hole.position.r) <= 2)).map(t => `${t.tile_type}@(${t.q},${t.r})`).join(', ')}` : ''}
-
-🔍 INTERIOR HOLES TO FILL (positions with 4+ neighbors):`;
-
-    const optionsDescription = placementOptions.map((posOption, i) => {
+    // Format interior hole positions
+    const interiorHolePositions = placementOptions.map(posOpt => `(${posOpt.position.q}, ${posOpt.position.r})`).join(', ');
+    
+    // Format valid tiles for each hole position
+    const validTilesDescription = placementOptions.map((posOption, i) => {
       const pos = posOption.position;
-      
-      // Group options by theme for better presentation
-      const byTheme = new Map();
-      posOption.validOptions.forEach(opt => {
-        const theme = this.categorizeTile(opt.tileId);
-        if (!byTheme.has(theme)) byTheme.set(theme, []);
-        byTheme.get(theme).push(opt);
-      });
-      
-      const themeList = Array.from(byTheme.entries())
-        .map(([theme, opts]) => `${theme}(${opts.length})`)
-        .join(', ');
-      
-      // Show ALL options in compact notation
       const compactOptions = this.compactOptionsNotation(posOption.validOptions);
-      
-      // Show available addons for sample tiles
-      const sampleTiles = posOption.validOptions.slice(0, 3); // Show addons for first 3 tiles as examples
-      const addonExamples = sampleTiles.map(opt => {
-        const compatibleAddons = this.getCompatibleAddons(opt.tileId, assetPack);
-        if (compatibleAddons.length > 0) {
-          return `${opt.tileId} → addons: ${compatibleAddons.slice(0, 3).map(a => a.addonId).join(', ')}${compatibleAddons.length > 3 ? '...' : ''}`;
-        }
-        return `${opt.tileId} → no addons`;
-      }).join(', ');
-      
-      return `Hole ${i + 1}: (${pos.q}, ${pos.r}) - ${posOption.validOptions.length} options, ${posOption.adjacentNeighbors.length} neighbors (${themeList})
-  Available: ${compactOptions}
-  ${addonExamples ? `Sample addons: ${addonExamples}` : ''}`;
-    }).join('\n\n');
+      return `Position (${pos.q}, ${pos.r}): ${compactOptions} [${posOption.adjacentNeighbors.length} neighbors]`;
+    }).join('\n');
 
-    const guidance = `\n\n🎯 INTERIOR HOLE FILLING STRATEGY:
-- These are true interior holes surrounded by 4+ neighboring tiles
-- Consider what tile types would enhance connectivity (roads, rivers, coastlines)
-- Fill strategic holes that add variety and avoid monotony
-- Leave some holes empty if they create better visual composition
-- Add addons to create more visual interest and detail
-- Think about thematic coherence with "${request.description}"
-- ${remaining <= 3 ? 'Very limited space - choose carefully!' : `${remaining} slots available - be selective!`}
+         // Format valid add-ons by unique tile types (not per position)
+     const uniqueTileTypes = new Set<string>();
+     placementOptions.forEach(posOption => {
+       posOption.validOptions.forEach(opt => {
+         uniqueTileTypes.add(opt.tileId);
+       });
+     });
+     
+     const validAddOnsDescription = Array.from(uniqueTileTypes)
+       .sort()
+       .map(tileId => {
+         const compatibleAddons = this.getCompatibleAddons(tileId, assetPack);
+         if (compatibleAddons.length > 0) {
+           return `${tileId}: ${compatibleAddons.map(a => a.addonId).join(', ')}`;
+         }
+         return `${tileId}: none`;
+       })
+       .join('\n');
 
-🗑️ TILE REMOVAL STRATEGY:
-- Remove tiles near impossible holes to free up new placement options
-- Remove tiles that create visual clutter or break thematic coherence
-- Remove tiles strategically to improve overall world design
-- Consider removing tiles that prevent better connectivity patterns
-- CONSTRAINT: You can only remove existing tiles (listed in current world above)
+    return `HOLE FILLING ITERATION STEP:
+Now let's do the hole filling iteration step to fill interior holes in the world.
 
-You can fill ALL holes, SOME holes, or NO holes - and remove ANY existing tiles - whatever makes the world better!`;
+The user description is:
+${request.description}
 
-    return worldDescription + '\n\n' + optionsDescription + guidance;
+The world generation parameters the user has provided and which might influence the world generation process as constraints are:
+Maximum tiles: ${maxTiles} (${remaining} remaining)
+
+The asset pack we are using is:
+${assetPackInfo}
+
+The current world state is:
+${worldState}
+
+Valid positions (interior holes with 4+ neighbors):
+${interiorHolePositions}
+
+Valid tiles:
+${validTilesDescription}
+
+Valid add-ons:
+${validAddOnsDescription}
+
+Please output your JSON object now.`;
   }
    
      /**
+   * Format complete asset pack information for LLM in compact notation
+   */
+  private formatAssetPackForLLM(assetPack: AssetPack): string {
+    // Format edge types
+    const edgeTypesInfo = Object.entries(assetPack.edge_types)
+      .map(([id, edgeType]) => {
+        const compatible = edgeType.compatible_with ? ` → ${edgeType.compatible_with.join(',')}` : '';
+        return `${id}[${edgeType.materials.join(',')}]${compatible}`;
+      })
+      .join(', ');
+
+    // Format tiles with compact edge and tag info
+    const tilesInfo = assetPack.tiles
+      .map(tile => {
+        const edges = tile.edges.join(',');
+        const tags = tile.tags.length > 0 ? ` #${tile.tags.join(',')}` : '';
+        return `${tile.id}[${edges}]${tags}`;
+      })
+      .join(', ');
+
+    // Format add-ons with placement requirements
+    const addonsInfo = assetPack.addons
+      .map(addon => {
+        const tileTags = addon.placement.tile_tags.join(',');
+        const addonTags = addon.tags.length > 0 ? ` #${addon.tags.join(',')}` : '';
+        return `${addon.id}(${tileTags})${addonTags}`;
+      })
+      .join(', ');
+
+    return `Asset Pack: ${assetPack.id} v${assetPack.version}
+Materials: ${assetPack.materials.join(', ')}
+Edge Types: ${edgeTypesInfo}
+Tiles: ${tilesInfo}
+Add-ons: ${addonsInfo}`;
+  }
+
+   /**
    * Categorize tiles by theme for better LLM understanding
    */
   private categorizeTile(tileId: string): string {
@@ -909,8 +1059,11 @@ You can fill ALL holes, SOME holes, or NO holes - and remove ANY existing tiles 
 
         const parsed = JSON.parse(jsonMatch[0]);
       
-      if (!parsed.placements || !Array.isArray(parsed.placements)) {
-        console.warn('Invalid placements in LLM response');
+      // Handle both old format (placements) and new format (tiles)
+      const placementsArray = parsed.tiles || parsed.placements || [];
+      
+      if (!Array.isArray(placementsArray)) {
+        console.warn('Invalid tiles/placements in LLM response');
         return null;
       }
 
@@ -922,7 +1075,7 @@ You can fill ALL holes, SOME holes, or NO holes - and remove ANY existing tiles 
       // First pass: validate against available options
       const candidatePlacements: TilePlacement[] = [];
       
-      for (const placement of parsed.placements) {
+      for (const placement of placementsArray) {
         if (!placement.position || !placement.tileId || placement.rotation === undefined) {
           invalidChoices.push(`${placement.tileId || 'unknown'}@(${placement.position?.q},${placement.position?.r}) - missing fields`);
           continue;
@@ -979,10 +1132,11 @@ You can fill ALL holes, SOME holes, or NO holes - and remove ANY existing tiles 
         });
       }
 
-      // Parse addon placements
+      // Parse addon placements - handle both old format (addonPlacements) and new format (add-ons)
       const validAddonPlacements: AddOnPlacement[] = [];
-      if (parsed.addonPlacements && Array.isArray(parsed.addonPlacements)) {
-        for (const addonPlacement of parsed.addonPlacements) {
+      const addonPlacementsArray = parsed["add-ons"] || parsed.addonPlacements || [];
+      if (Array.isArray(addonPlacementsArray)) {
+        for (const addonPlacement of addonPlacementsArray) {
           if (!addonPlacement.position || !addonPlacement.addonId) {
             invalidChoices.push(`${addonPlacement.addonId || 'unknown'}@(${addonPlacement.position?.q},${addonPlacement.position?.r}) - missing addon fields`);
             continue;
