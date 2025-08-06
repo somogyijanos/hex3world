@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AssetPackManager } from '@/core/AssetPackManager';
-import { LLMWorldGenerator } from '@/core/LLMWorldGenerator';
+import { SimpleWorldGenerator } from '@/core/SimpleWorldGenerator';
 import { getLLMConfig, isLLMConfigured } from '@/lib/llm-config';
 import { GenerationRequest } from '@/types/llm';
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     await assetPackManager.loadAssetPackFromUrl(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}${assetPackUrl}`);
 
     // Initialize world generator
-    const generator = new LLMWorldGenerator(assetPackManager);
+    const generator = new SimpleWorldGenerator(assetPackManager);
     
     // Configure LLM
     const llmConfig = getLLMConfig();
