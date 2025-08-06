@@ -721,6 +721,56 @@ For valid tiles a compact notation "tile-id:rotation" is used in the following f
     - if all rotations are allowed, it is specified as "r*"
 - so a valid tile is specified e.g. "my-tile-c:r1,5" or "my-tile-c:r*" or "my-tile-c:r3"
 
+HEXAGONAL COORDINATE SYSTEM:
+Understanding the hexagonal grid is crucial for making spatial decisions. The coordinate system uses axial coordinates (q, r):
+
+Coordinate layout:
+Imagine looking down at a hexagonal grid. The coordinates work as follows:
+- q increases horizontally to the right
+- r increases diagonally down-left
+- The third implicit coordinate s = -q-r increases diagonally down-right
+
+Neighbor relationships:
+Every hexagon at position (q, r) has exactly 6 neighbors. The neighbors are indexed 0-5 in clockwise order:
+- Edge 0 neighbor: (q, r+1) - bottom-right direction
+- Edge 1 neighbor: (q-1, r+1) - bottom-left direction  
+- Edge 2 neighbor: (q-1, r) - left direction
+- Edge 3 neighbor: (q, r-1) - top-left direction
+- Edge 4 neighbor: (q+1, r-1) - top-right direction
+- Edge 5 neighbor: (q+1, r) - right direction
+
+Edge-neighbor mapping:
+Each tile has 6 edges numbered 0-5. When two tiles are adjacent:
+- Tile A's edge N connects to Tile B's edge (N+3)%6
+- For example: if tile at (0,0) has edge 0 facing right toward (1,0), then tile at (1,0) has edge 3 facing left toward (0,0)
+
+Spatial examples:
+If you place a tile at (0,0):
+- Position (1,0) is to the RIGHT (edge 5 connection)
+- Position (0,1) is to the BOTTOM-RIGHT (edge 0 connection)
+- Position (-1,1) is to the BOTTOM-LEFT (edge 1 connection)
+- Position (-1,0) is to the LEFT (edge 2 connection)
+- Position (0,-1) is to the TOP-LEFT (edge 3 connection)
+- Position (1,-1) is to the TOP-RIGHT (edge 4 connection)
+
+Distance calculation:
+The distance between two hexagons (q1,r1) and (q2,r2) is:
+distance = (|q1-q2| + |q1+r1-q2-r2| + |r1-r2|) / 2
+
+Understanding rotations:
+When a tile rotates by N steps (60° each), its edge array shifts:
+- Rotation 0: edges remain [e0,e1,e2,e3,e4,e5]
+- Rotation 1: edges become [e5,e0,e1,e2,e3,e4] (each edge shifts one position right)
+- This means what was edge 0 is now at edge 1, what was edge 1 is now at edge 2, etc.
+
+Practical spatial reasoning:
+When making placement decisions, consider:
+1. Which existing tiles are neighbors of the position you're considering
+2. How the edges of your chosen tile (with its rotation) will connect to neighbor edges
+3. Whether multiple new tiles you place will be compatible with each other
+4. The overall spatial pattern and flow of your world design
+5. How the spatial layout supports the user's description (e.g., roads should connect, buildings should be accessible)
+
 ADD-ONS:
 You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
 The add-ons when placed have an id and a position (determining which tile they are placed on).
@@ -948,6 +998,55 @@ For valid tiles a compact notation "tile-id:rotation" is used in the following f
     - if multiple rotations are allowed, they are specified as "r0,2,4" (meaning rotations 0, 2 and 4 are allowed)
     - if all rotations are allowed, it is specified as "r*"
 - so a valid tile is specified e.g. "my-tile-c:r1,5" or "my-tile-c:r*" or "my-tile-c:r3"
+
+HEXAGONAL COORDINATE SYSTEM:
+Understanding the hexagonal grid is crucial for making spatial decisions. The coordinate system uses axial coordinates (q, r):
+
+Coordinate layout:
+Imagine looking down at a hexagonal grid. The coordinates work as follows:
+- q increases horizontally to the right
+- r increases diagonally down-left
+- The third implicit coordinate s = -q-r increases diagonally down-right
+
+Neighbor relationships:
+Every hexagon at position (q, r) has exactly 6 neighbors. The neighbors are indexed 0-5 in clockwise order:
+- Edge 0 neighbor: (q, r+1) - bottom-right direction
+- Edge 1 neighbor: (q-1, r+1) - bottom-left direction  
+- Edge 2 neighbor: (q-1, r) - left direction
+- Edge 3 neighbor: (q, r-1) - top-left direction
+- Edge 4 neighbor: (q+1, r-1) - top-right direction
+- Edge 5 neighbor: (q+1, r) - right direction
+
+Edge-neighbor mapping:
+Each tile has 6 edges numbered 0-5. When two tiles are adjacent:
+- Tile A's edge N connects to Tile B's edge (N+3)%6
+- For example: if tile at (0,0) has edge 0 facing right toward (1,0), then tile at (1,0) has edge 3 facing left toward (0,0)
+
+Spatial examples:
+If you place a tile at (0,0):
+- Position (1,0) is to the RIGHT (edge 5 connection)
+- Position (0,1) is to the BOTTOM-RIGHT (edge 0 connection)
+- Position (-1,1) is to the BOTTOM-LEFT (edge 1 connection)
+- Position (-1,0) is to the LEFT (edge 2 connection)
+- Position (0,-1) is to the TOP-LEFT (edge 3 connection)
+- Position (1,-1) is to the TOP-RIGHT (edge 4 connection)
+
+Distance calculation:
+The distance between two hexagons (q1,r1) and (q2,r2) is:
+distance = (|q1-q2| + |q1+r1-q2-r2| + |r1-r2|) / 2
+
+Understanding rotations:
+When a tile rotates by N steps (60° each), its edge array shifts:
+- Rotation 0: edges remain [e0,e1,e2,e3,e4,e5]
+- Rotation 1: edges become [e5,e0,e1,e2,e3,e4] (each edge shifts one position right)
+- This means what was edge 0 is now at edge 1, what was edge 1 is now at edge 2, etc.
+
+Practical spatial reasoning for hole filling:
+When filling holes, consider:
+1. Which existing tiles surround the hole (4+ neighbors)
+2. How the edges of your chosen tile (with its rotation) will connect to ALL surrounding neighbor edges
+3. Whether filling this hole improves connectivity and visual flow
+4. How the filled hole contributes to the overall spatial pattern and theme
 
 ADD-ONS:
 You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
@@ -1387,6 +1486,45 @@ ADD-ONS:
 You can imagine the add-ons as decorations that can be placed on the tiles, they are 3D objects.
 Not all tiles can have all add-ons placed on them, this issue is handled by tags. Each tile has tags
 and each add on has a list of allowed tags to choose the tile to place it on.
+
+HEXAGONAL COORDINATE SYSTEM:
+Understanding the hexagonal grid is crucial for planning spatial layouts. The coordinate system uses axial coordinates (q, r):
+
+Coordinate layout:
+Imagine looking down at a hexagonal grid. The coordinates work as follows:
+- q increases horizontally to the right
+- r increases diagonally down-left
+- The third implicit coordinate s = -q-r increases diagonally down-right
+
+Neighbor relationships:
+Every hexagon at position (q, r) has exactly 6 neighbors. The neighbors are indexed 0-5 in clockwise order:
+- Edge 0 neighbor: (q, r+1) - bottom-right direction
+- Edge 1 neighbor: (q-1, r+1) - bottom-left direction  
+- Edge 2 neighbor: (q-1, r) - left direction
+- Edge 3 neighbor: (q, r-1) - top-left direction
+- Edge 4 neighbor: (q+1, r-1) - top-right direction
+- Edge 5 neighbor: (q+1, r) - right direction
+
+Spatial examples:
+If you place a tile at (0,0):
+- Position (1,0) is to the RIGHT
+- Position (0,1) is to the BOTTOM-RIGHT
+- Position (-1,1) is to the BOTTOM-LEFT
+- Position (-1,0) is to the LEFT
+- Position (0,-1) is to the TOP-LEFT
+- Position (1,-1) is to the TOP-RIGHT
+
+Distance calculation:
+The distance between two hexagons (q1,r1) and (q2,r2) is:
+distance = (|q1-q2| + |q1+r1-q2-r2| + |r1-r2|) / 2
+
+Planning considerations:
+When creating your plan, consider:
+1. How different areas connect spatially (roads, paths, access routes)
+2. Logical spatial grouping (buildings near roads, decorative elements in appropriate areas)
+3. The world grows from center (0,0) outward to adjacent positions
+4. Edge compatibility constraints between adjacent tiles
+5. How the spatial layout supports the user's description and intended flow
 
 ASSET PACK:
 The asset pack is a set of tiles and add-ons and some meta data.
