@@ -24,7 +24,6 @@ interface WorldEntry {
 
 // Available asset packs
 const AVAILABLE_ASSET_PACKS = [
-  { id: 'demo-pack', name: 'Simple Demo Pack', url: '/assets/packs/demo-pack.json' },
   { id: 'kaykit-medieval-pack', name: 'KayKit Medieval Pack', url: '/assets/packs/kaykit-medieval-pack.json' }
 ];
 
