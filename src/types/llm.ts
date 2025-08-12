@@ -48,7 +48,6 @@ export interface GenerationRequest {
 
 export interface GenerationConstraints {
   maxTiles?: number;
-  minTiles?: number;
   preferredTileTypes?: string[];
   forbiddenTileTypes?: string[];
   centerPosition?: { q: number; r: number };

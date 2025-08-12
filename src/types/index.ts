@@ -95,7 +95,6 @@ export interface GenerationMetadata {
   asset_pack_used: string; // Asset pack ID used
   constraints?: {
     max_tiles?: number;
-    min_tiles?: number;
     preferred_tile_types?: string[];
     forbidden_tile_types?: string[];
     theme?: string;

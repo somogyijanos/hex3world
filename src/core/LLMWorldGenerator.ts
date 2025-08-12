@@ -285,7 +285,6 @@ When you're satisfied with the world, use validate_world for final confirmation.
     if (request.constraints) {
       prompt += '\n\n**Constraints**:';
       if (request.constraints.maxTiles) prompt += `\n- Maximum ${request.constraints.maxTiles} tiles`;
-      if (request.constraints.minTiles) prompt += `\n- Minimum ${request.constraints.minTiles} tiles`;
       if (request.constraints.preferredTileTypes?.length) {
         prompt += `\n- Preferred tile types: ${request.constraints.preferredTileTypes.join(', ')}`;
       }

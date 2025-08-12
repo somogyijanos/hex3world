@@ -67,7 +67,6 @@ export class GenerationMetadataCreator {
 
     return {
       max_tiles: request.constraints.maxTiles,
-      min_tiles: request.constraints.minTiles,
       preferred_tile_types: request.constraints.preferredTileTypes,
       forbidden_tile_types: request.constraints.forbiddenTileTypes,
       theme: request.constraints.theme,

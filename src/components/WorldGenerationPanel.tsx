@@ -47,7 +47,6 @@ export function WorldGenerationPanel({
   const [selectedAssetPack, setSelectedAssetPack] = useState(availableAssetPacks[0] || '');
   const [description, setDescription] = useState('');
   const [maxTiles, setMaxTiles] = useState(20);
-  const [minTiles, setMinTiles] = useState(5);
   const [includeAddons, setIncludeAddons] = useState(true);
   const [expandExisting, setExpandExisting] = useState(false);
   
@@ -76,7 +75,6 @@ export function WorldGenerationPanel({
     try {
       const constraints: GenerationConstraints = {
         maxTiles,
-        minTiles,
         includeAddons
       };
 
@@ -351,31 +349,17 @@ export function WorldGenerationPanel({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="min-tiles">Min Tiles: {minTiles}</Label>
-                <input
-                  id="min-tiles"
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={minTiles}
-                  onChange={(e) => setMinTiles(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="max-tiles">Max Tiles: {maxTiles}</Label>
-                <input
-                  id="max-tiles"
-                  type="range"
-                  min="5"
-                  max="100"
-                  value={maxTiles}
-                  onChange={(e) => setMaxTiles(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="max-tiles">Max Tiles: {maxTiles}</Label>
+              <input
+                id="max-tiles"
+                type="range"
+                min="5"
+                max="100"
+                value={maxTiles}
+                onChange={(e) => setMaxTiles(parseInt(e.target.value))}
+                className="w-full"
+              />
             </div>
             <div className="flex items-center space-x-2">
               <Switch
