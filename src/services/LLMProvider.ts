@@ -184,8 +184,12 @@ export class ClaudeProvider extends BaseLLMProvider {
     const temperature = options?.temperature ?? this.config.temperature ?? 0.7;
     const maxTokens = options?.maxTokens ?? this.config.maxTokens ?? 4000;
 
-    // Convert our message format to Claude format
-    const claudeMessages = messages.map(msg => {
+    // Extract system messages for Claude's separate system parameter
+    const systemMessages = messages.filter(msg => msg.role === 'system');
+    const nonSystemMessages = messages.filter(msg => msg.role !== 'system');
+    
+    // Convert our message format to Claude format (excluding system messages)
+    const claudeMessages = nonSystemMessages.map(msg => {
       if (msg.role === 'tool') {
         // Tool result message
         return {
@@ -232,7 +236,11 @@ export class ClaudeProvider extends BaseLLMProvider {
       messages: claudeMessages,
       tools: claudeTools.length > 0 ? claudeTools : undefined,
       temperature,
-      max_tokens: maxTokens
+      max_tokens: maxTokens,
+      // Claude requires system messages as a separate parameter
+      ...(systemMessages.length > 0 && {
+        system: systemMessages.map(msg => msg.content).join('\n\n')
+      })
     };
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
