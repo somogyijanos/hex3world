@@ -52,6 +52,7 @@ export default function HexWorldPage() {
   const [selectedAddonInfo, setSelectedAddonInfo] = useState<AddonInfo | null>(null);
   const [isDarkMode] = useState(false);
   const [showGenerationPanel, setShowGenerationPanel] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [availableWorlds, setAvailableWorlds] = useState<WorldEntry[]>([]);
 
 
@@ -1053,7 +1054,7 @@ export default function HexWorldPage() {
       {showGenerationPanel && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowGenerationPanel(false)}
+          onClick={() => !isGenerating && setShowGenerationPanel(false)}
         >
           <div 
             className="relative max-h-[90vh] overflow-y-auto"
@@ -1064,6 +1065,7 @@ export default function HexWorldPage() {
               variant="outline"
               size="sm"
               className="absolute -top-12 right-0 bg-white/90 hover:bg-white"
+              disabled={isGenerating}
             >
               <X className="h-4 w-4" />
               Close
@@ -1080,7 +1082,6 @@ export default function HexWorldPage() {
                   await ensureAssetPackLoaded(world.asset_pack);
                   hexRendererRef.current.renderWorld(world);
                 }
-                setShowGenerationPanel(false);
 
                 // Refresh available worlds list to show the newly saved world
                 await refreshAvailableWorlds();
@@ -1094,6 +1095,8 @@ export default function HexWorldPage() {
                 // Could show progress in a toast or status area
                 console.log('Generation progress:', progress);
               }}
+              onGenerationStateChange={setIsGenerating}
+              onCloseModal={() => setShowGenerationPanel(false)}
             />
           </div>
         </div>

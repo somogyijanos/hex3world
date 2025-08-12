@@ -32,6 +32,7 @@ export class SimpleWorldGenerator {
   private worldPlanner: WorldPlanner;
   private placementEngine: PlacementEngine;
   private trackerManager: GenerationTrackerManager;
+  private isCancelled: boolean = false;
 
   constructor(assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -49,6 +50,14 @@ export class SimpleWorldGenerator {
   setLLMProvider(config: LLMConfig): void {
     this.llmProvider = LLMProviderFactory.create(config);
     this.worldPlanner.setLLMProvider(this.llmProvider);
+  }
+
+  /**
+   * Cancel the current generation
+   */
+  cancel(): void {
+    console.log('🛑 Generation cancellation requested');
+    this.isCancelled = true;
   }
 
   /**
@@ -103,6 +112,9 @@ export class SimpleWorldGenerator {
     }
 
     try {
+      // Reset cancellation flag
+      this.isCancelled = false;
+      
       // Initialize generation tracking
       this.trackerManager.initialize();
       
@@ -134,14 +146,23 @@ export class SimpleWorldGenerator {
         console.log(`\n📋 PLANNING PHASE: Creating strategic plan...`);
         
         this.emitEvent('progress', {
-          stage: 'planning',
+          stage: 'expanding',
           currentStep: 1,
-          totalSteps: 1,
+          totalSteps: maxTiles + 1, // +1 for planning step
           message: 'Creating strategic world plan...',
           placedTiles: 0,
           validationErrors: 0,
           currentWorld
         });
+
+        // Check for cancellation before planning
+        if (this.isCancelled) {
+          console.log('🛑 Generation cancelled during planning phase');
+          return {
+            success: false,
+            error: 'Generation cancelled by user'
+          };
+        }
 
         const currentPlan = await this.worldPlanner.createWorldPlan(request, assetPack, maxTiles);
         this.llmPrompter.setCurrentPlan(currentPlan);
@@ -171,9 +192,21 @@ export class SimpleWorldGenerator {
 
       const maxIterations = 50; // Prevent infinite loops
       let iteration = 0;
+      
+      // Determine starting step offset based on whether planning was done
+      const planningStepOffset = currentWorld.tiles.length === 0 ? 1 : 0;
 
       // Iterative generation loop
       while (currentWorld.tiles.length < maxTiles && iteration < maxIterations) {
+        // Check for cancellation
+        if (this.isCancelled) {
+          console.log('🛑 Generation cancelled by user request');
+          return {
+            success: false,
+            error: 'Generation cancelled by user'
+          };
+        }
+
         iteration++;
 
         // Update iteration tracker
@@ -183,8 +216,8 @@ export class SimpleWorldGenerator {
 
         this.emitEvent('progress', {
           stage: 'expanding',
-          currentStep: iteration,
-          totalSteps: maxTiles,
+          currentStep: iteration + planningStepOffset,
+          totalSteps: maxTiles + planningStepOffset,
           message: `Iteration ${iteration}: Finding placement options...`,
           placedTiles: currentWorld.tiles.length,
           validationErrors: 0,
@@ -205,6 +238,15 @@ export class SimpleWorldGenerator {
 
         // Ask LLM to make placement decisions
         const llmDecision = await this.getLLMPlacementDecision(request, currentWorld, placementOptions, assetPack, maxTiles);
+
+        // Check for cancellation after LLM call
+        if (this.isCancelled) {
+          console.log('🛑 Generation cancelled after LLM placement decision');
+          return {
+            success: false,
+            error: 'Generation cancelled by user'
+          };
+        }
 
         // Track LLM call
         this.trackerManager.trackLLMCall('tile-placement');
@@ -303,10 +345,19 @@ export class SimpleWorldGenerator {
       // Fill holes iteration - one final pass to identify and fill gaps
       console.log(`\n🕳️ FILL HOLES PHASE: Looking for interior gaps to fill...`);
       
+      // Check for cancellation before hole filling
+      if (this.isCancelled) {
+        console.log('🛑 Generation cancelled during hole filling phase');
+        return {
+          success: false,
+          error: 'Generation cancelled by user'
+        };
+      }
+      
       this.emitEvent('progress', {
-        stage: 'filling_holes',
-        currentStep: currentWorld.tiles.length,
-        totalSteps: maxTiles,
+        stage: 'expanding',
+        currentStep: Math.min(currentWorld.tiles.length + planningStepOffset, maxTiles + planningStepOffset),
+        totalSteps: maxTiles + planningStepOffset,
         message: 'Analyzing world for interior holes to fill...',
         placedTiles: currentWorld.tiles.length,
         validationErrors: 0,
@@ -325,6 +376,15 @@ export class SimpleWorldGenerator {
       if ((populatableHoles.length > 0 && currentWorld.tiles.length < maxTiles) || unpopulatableHoles.length > 0) {
         // Ask LLM to identify and fill holes or remove tiles to resolve impossible holes
         const fillHolesDecision = await this.getLLMFillHolesDecision(request, currentWorld, populatableHoles, unpopulatableHoles, assetPack, maxTiles);
+        
+        // Check for cancellation after hole filling LLM call
+        if (this.isCancelled) {
+          console.log('🛑 Generation cancelled after LLM hole filling decision');
+          return {
+            success: false,
+            error: 'Generation cancelled by user'
+          };
+        }
         
         // Track hole filling LLM call
         this.trackerManager.trackLLMCall('hole-filling');
@@ -404,8 +464,8 @@ export class SimpleWorldGenerator {
 
       this.emitEvent('completed', {
         stage: 'complete',
-        currentStep: maxTiles,
-        totalSteps: maxTiles,
+        currentStep: maxTiles + planningStepOffset,
+        totalSteps: maxTiles + planningStepOffset,
         message: 'World generation completed!',
         placedTiles: currentWorld.tiles.length,
         validationErrors: validationSummary.invalidEdges,

@@ -41,6 +41,9 @@ export interface GenerationRequest {
   description: string;
   constraints?: GenerationConstraints;
   existingWorld?: World;
+  stream?: boolean; // For streaming real-time updates
+  action?: 'generate' | 'cancel'; // For controlling generation
+  sessionId?: string; // For tracking sessions
 }
 
 export interface GenerationConstraints {
@@ -55,7 +58,7 @@ export interface GenerationConstraints {
 }
 
 export interface GenerationProgress {
-  stage: 'planning' | 'placing_tiles' | 'adding_addons' | 'validating' | 'complete' | 'error';
+  stage: 'planning' | 'expanding' | 'filling_holes' | 'placing_tiles' | 'adding_addons' | 'validating' | 'complete' | 'error';
   currentStep: number;
   totalSteps: number;
   message: string;
