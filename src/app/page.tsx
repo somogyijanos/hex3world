@@ -1073,7 +1073,7 @@ export default function HexWorldPage() {
               availableAssetPacks={AVAILABLE_ASSET_PACKS.map(pack => pack.id)}
               currentWorld={currentWorldData || undefined}
               onWorldGenerated={async (world) => {
-                // Save the generated world
+                // Save the generated world (if enabled)
                 try {
                   const response = await fetch('/api/save-world', {
                     method: 'POST',
@@ -1084,6 +1084,9 @@ export default function HexWorldPage() {
                   if (response.ok) {
                     const result = await response.json();
                     console.log('World saved:', result.message);
+                  } else if (response.status === 403) {
+                    // World saving is disabled - this is expected behavior
+                    console.log('World saving is disabled in environment configuration');
                   } else {
                     console.error('Failed to save world:', await response.text());
                   }

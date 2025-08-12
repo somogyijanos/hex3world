@@ -45,23 +45,31 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Save the generated world
-    try {
-      const saveResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}/api/save-world`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ world: result.world }),
-      });
+    // Save the generated world (if enabled)
+    const enableWorldSaving = process.env.ENABLE_WORLD_SAVING === 'true';
+    
+    if (enableWorldSaving) {
+      try {
+        const saveResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}/api/save-world`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ world: result.world }),
+        });
 
-      if (saveResponse.ok) {
-        const saveResult = await saveResponse.json();
-        console.log('World saved successfully:', saveResult.filename);
+        if (saveResponse.ok) {
+          const saveResult = await saveResponse.json();
+          console.log('World saved successfully:', saveResult.filename);
+        } else {
+          console.warn('Failed to auto-save world: API returned error');
+        }
+      } catch (saveError) {
+        console.warn('Failed to auto-save world:', saveError);
+        // Don't fail the entire request if saving fails
       }
-    } catch (saveError) {
-      console.warn('Failed to auto-save world:', saveError);
-      // Don't fail the entire request if saving fails
+    } else {
+      console.log('World saving is disabled - skipping auto-save');
     }
 
     return NextResponse.json({

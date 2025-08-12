@@ -10,7 +10,7 @@ A Next.js application for generating and visualizing beautiful 3D hex-based worl
 - 🎨 **3D Visualization** - Interactive 3D rendering with Three.js
 - 📦 **Asset Pack System** - Modular tile and add-on management
 - 🔒 **Secure Configuration** - Environment-based API key management
-- 💾 **Auto-Save Worlds** - Generated worlds are automatically saved and shared
+- 💾 **Configurable World Saving** - Generated worlds can be automatically saved and shared (configurable via environment variable)
 
 ## 🚀 Getting Started
 
@@ -109,7 +109,7 @@ Try these example descriptions for different types of worlds:
 - **Constraint Control** - Set tile limits and preferred types
 - **Real-time Progress** - Watch your world generate tile by tile
 - **Validation Feedback** - See detailed compatibility checking
-- **World Persistence** - Generated worlds are automatically saved as JSON files and appear in the world selection dropdown for everyone to access
+- **World Persistence** - Generated worlds can be automatically saved as JSON files (when `ENABLE_WORLD_SAVING=true`) and appear in the world selection dropdown for everyone to access
 
 ## 🏗️ Technical Architecture
 

@@ -5,6 +5,16 @@ import { World } from '@/types/index';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if world saving is enabled
+    const enableWorldSaving = process.env.ENABLE_WORLD_SAVING === 'true';
+    
+    if (!enableWorldSaving) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'World saving is disabled in environment configuration' 
+      }, { status: 403 });
+    }
+
     const { world, filename }: { world: World; filename?: string } = await request.json();
 
     if (!world || !world.asset_pack || !Array.isArray(world.tiles)) {
