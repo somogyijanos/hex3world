@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { World, AssetPack, GeometryConfig, WorldTile, WorldAddOn } from '../types/index';
 import { AssetPackManager } from '../core/AssetPackManager';
 import { EdgeValidator, ValidationSummary, EdgeValidationResult } from '../core/EdgeValidator';
+import { getRotatedTileEdges } from '../core/HexCoordinates';
 
 export interface RendererConfig {
   container: HTMLElement;
@@ -37,6 +38,16 @@ export interface TileInfo {
   elevation: number;
   rotation: number;
   position: THREE.Vector3;
+  edges: [string, string, string, string, string, string]; // 6 edge types after rotation (clockwise from top-right)
+}
+
+export interface AddonInfo {
+  coordinates: { q: number; r: number };
+  addonId: string;
+  localPosition: [number, number, number];
+  localRotation: number;
+  localScale: number;
+  position: THREE.Vector3;
 }
 
 export class HexWorldRenderer {
@@ -68,6 +79,10 @@ export class HexWorldRenderer {
   private edgeValidator: EdgeValidator;
   private currentValidationSummary?: ValidationSummary;
 
+  // Current world data for edge calculation
+  private currentWorld?: World;
+  private currentAssetPack?: AssetPack;
+
   // Interactivity system
   private interactivityEnabled: boolean = false;
   private raycaster: THREE.Raycaster;
@@ -76,8 +91,11 @@ export class HexWorldRenderer {
   private selectedTileHighlight?: THREE.Mesh;
   private selectedValidation?: THREE.Mesh;
   private selectedValidationHighlight?: THREE.Mesh;
+  private selectedAddon?: THREE.Mesh;
+  private selectedAddonHighlight?: THREE.Mesh;
   private onTileSelectedCallback?: (tileInfo: TileInfo | null) => void;
   private onValidationSelectedCallback?: (validationInfo: EdgeValidationResult | null) => void;
+  private onAddonSelectedCallback?: (addonInfo: AddonInfo | null) => void;
 
   constructor(config: RendererConfig, assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -430,16 +448,28 @@ export class HexWorldRenderer {
         return;
       }
 
+      // Then check addon objects
+      const addonIntersects = this.raycaster.intersectObjects(this.addonsGroup.children, true);
+      if (addonIntersects.length > 0) {
+        const intersectedAddon = addonIntersects[0].object as THREE.Mesh;
+        this.selectAddon(intersectedAddon);
+        this.deselectTile(); // Clear tile selection when selecting addon
+        this.deselectValidation(); // Clear validation selection when selecting addon
+        return;
+      }
+
       // Then check tile objects
       const tileIntersects = this.raycaster.intersectObjects(this.tilesGroup.children, true);
       if (tileIntersects.length > 0) {
         const intersectedMesh = tileIntersects[0].object as THREE.Mesh;
         this.selectTile(intersectedMesh);
         this.deselectValidation(); // Clear validation selection when selecting tile
+        this.deselectAddon(); // Clear addon selection when selecting tile
       } else {
         // Clear all selections if nothing was hit
         this.deselectTile();
         this.deselectValidation();
+        this.deselectAddon();
       }
     };
 
@@ -516,12 +546,106 @@ export class HexWorldRenderer {
     if (!userData.tileData) return null;
 
     const tileData = userData.tileData;
+    
+    // Calculate edges after rotation
+    let edges: [string, string, string, string, string, string] = ['', '', '', '', '', ''];
+    
+    if (this.currentAssetPack) {
+      // Find the tile definition
+      const tileDefinition = this.currentAssetPack.tiles.find(t => t.id === tileData.tile_type);
+      if (tileDefinition) {
+        // Get the rotated edges using the utility function
+        edges = getRotatedTileEdges(tileDefinition, this.currentAssetPack, tileData.rotation || 0);
+      }
+    }
+
     return {
       coordinates: { q: tileData.q, r: tileData.r },
       tileType: tileData.tile_type,
       elevation: tileData.elevation,
       rotation: tileData.rotation || 0,
-      position: tileMesh.position.clone()
+      position: tileMesh.position.clone(),
+      edges: edges
+    };
+  }
+
+  /**
+   * Select an addon and highlight it
+   */
+  private selectAddon(addonMesh: THREE.Mesh): void {
+    if (this.selectedAddon === addonMesh) return; // Already selected
+
+    // Deselect previous addon
+    this.deselectAddon();
+
+    this.selectedAddon = addonMesh;
+
+    // Create highlight
+    this.createAddonHighlight(addonMesh);
+
+    // Extract addon info and notify callback
+    const addonInfo = this.extractAddonInfo(addonMesh);
+    if (this.onAddonSelectedCallback && addonInfo) {
+      this.onAddonSelectedCallback(addonInfo);
+    }
+  }
+
+  /**
+   * Deselect current addon and remove highlight
+   */
+  private deselectAddon(): void {
+    if (this.selectedAddonHighlight) {
+      this.scene.remove(this.selectedAddonHighlight);
+      this.selectedAddonHighlight.geometry.dispose();
+      (this.selectedAddonHighlight.material as THREE.Material).dispose();
+      this.selectedAddonHighlight = undefined;
+    }
+
+    this.selectedAddon = undefined;
+
+    if (this.onAddonSelectedCallback) {
+      this.onAddonSelectedCallback(null);
+    }
+  }
+
+  /**
+   * Create visual highlight for selected addon
+   */
+  private createAddonHighlight(addonMesh: THREE.Mesh): void {
+    const geometry = addonMesh.geometry.clone();
+    
+    // Create wireframe material for highlight
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffa500, // Orange color to distinguish from tile highlights
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    this.selectedAddonHighlight = new THREE.Mesh(geometry, material);
+    this.selectedAddonHighlight.position.copy(addonMesh.position);
+    this.selectedAddonHighlight.rotation.copy(addonMesh.rotation);
+    this.selectedAddonHighlight.scale.copy(addonMesh.scale);
+    this.selectedAddonHighlight.scale.multiplyScalar(1.05); // Slightly larger for visibility
+
+    this.scene.add(this.selectedAddonHighlight);
+  }
+
+  /**
+   * Extract addon information from mesh userData
+   */
+  private extractAddonInfo(addonMesh: THREE.Mesh): AddonInfo | null {
+    const userData = addonMesh.userData;
+    if (!userData.addonData) return null;
+
+    const addonData = userData.addonData;
+    return {
+      coordinates: { q: addonData.q, r: addonData.r },
+      addonId: addonData.addon_id,
+      localPosition: addonData.local_position,
+      localRotation: addonData.local_rotation,
+      localScale: addonData.local_scale,
+      position: addonMesh.position.clone()
     };
   }
 
@@ -980,6 +1104,10 @@ export class HexWorldRenderer {
     
     // Get asset pack
     const assetPack = this.assetPackManager.getAssetPack(world.asset_pack);
+    
+    // Store current world and asset pack for edge calculation
+    this.currentWorld = world;
+    this.currentAssetPack = assetPack;
     if (!assetPack) {
       throw new Error(`Asset pack '${world.asset_pack}' not found`);
     }
@@ -1103,6 +1231,10 @@ export class HexWorldRenderer {
       // Create mesh
       const mesh = new THREE.Mesh(loadedModel.geometry, material);
       mesh.castShadow = true;
+      
+      // Store addon data in userData for selection
+      mesh.userData.addonData = worldAddon;
+      mesh.userData.addonDefinition = addonDefinition;
       
       // Find the actual placed tile mesh to get its real surface position
       const tileKey = `${worldAddon.q},${worldAddon.r}`;
@@ -1510,5 +1642,12 @@ private async visualizeValidationResults(summary: ValidationSummary, world: Worl
     
     // Store validation info for potential tooltips/interaction
     iconMesh.userData.validationResult = result;
+  }
+
+  /**
+   * Set callback for addon selection events
+   */
+  setAddonSelectionCallback(callback: (addonInfo: AddonInfo | null) => void): void {
+    this.onAddonSelectedCallback = callback;
   }
 }

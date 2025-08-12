@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { HexWorldRenderer, TileInfo } from '@/renderer/HexWorldRenderer';
+import { HexWorldRenderer, TileInfo, AddonInfo } from '@/renderer/HexWorldRenderer';
 import { AssetPackManager } from '@/core/AssetPackManager';
 import { ValidationSummary, EdgeValidationResult } from '@/core/EdgeValidator';
 import { World } from '@/types/index';
@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Loader2, Settings, X, RotateCcw, AlertTriangle, XCircle, Earth, Wand2 } from 'lucide-react';
+import { Loader2, Settings, X, RotateCcw, AlertTriangle, XCircle, Earth, Wand2, Hexagon, RotateCw, Layers2, ShieldCheck, XCircle as XCircleIcon, Info, Compass, Box, ArrowUp, CheckCircle, ArrowRight, Activity, Package, Scale, Link } from 'lucide-react';
 import { WorldGenerationPanel } from '@/components/WorldGenerationPanel';
 
 // World type definition
@@ -49,17 +49,12 @@ export default function HexWorldPage() {
   const [interactivityEnabled, setInteractivityEnabled] = useState(false);
   const [selectedTileInfo, setSelectedTileInfo] = useState<TileInfo | null>(null);
   const [selectedValidationInfo, setSelectedValidationInfo] = useState<EdgeValidationResult | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedAddonInfo, setSelectedAddonInfo] = useState<AddonInfo | null>(null);
+  const [isDarkMode] = useState(false);
   const [showGenerationPanel, setShowGenerationPanel] = useState(false);
   const [availableWorlds, setAvailableWorlds] = useState<WorldEntry[]>([]);
 
-  // Close modal when selections change
-  useEffect(() => {
-    if (!selectedTileInfo && !selectedValidationInfo) {
-      setShowDetailModal(false);
-    }
-  }, [selectedTileInfo, selectedValidationInfo]);
+
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [validationSummary, setValidationSummary] = useState<ValidationSummary | null>(null);
@@ -102,6 +97,11 @@ export default function HexWorldPage() {
       // Set up validation selection callback
       hexRenderer.setValidationSelectionCallback((validationInfo: EdgeValidationResult | null) => {
         setSelectedValidationInfo(validationInfo);
+      });
+      
+      // Set up addon selection callback
+      hexRenderer.setAddonSelectionCallback((addonInfo: AddonInfo | null) => {
+        setSelectedAddonInfo(addonInfo);
       });
       
       hexRendererRef.current = hexRenderer;
@@ -352,213 +352,455 @@ export default function HexWorldPage() {
     <div className="w-full h-screen relative bg-background">
       <div ref={rendererRef} className="w-full h-full" />
       
-      {/* Top-Right Selection Info */}
-      {(selectedTileInfo || selectedValidationInfo) && (
+      {/* Selection Info Panel */}
+      {(selectedTileInfo || selectedValidationInfo || selectedAddonInfo) && (
         <div className="absolute top-4 right-4 z-20">
-          <Card className="p-3 bg-card/95 backdrop-blur-sm shadow-lg border-border/50 min-w-[280px]">
-            <div className="space-y-2">
+          <Card className="w-72 max-h-[calc(100vh-2rem)] backdrop-blur-sm bg-card/95 border-border/50 shadow-lg overflow-hidden">
+            <div className="h-full flex flex-col">
               {selectedTileInfo && (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium text-blue-600">Selected Tile</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedTileInfo(null)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span>Coordinates:</span>
-                      <span className="font-mono">({selectedTileInfo.coordinates.q}, {selectedTileInfo.coordinates.r})</span>
+                <>
+                  {/* Header */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedTileInfo(null)}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-3 w-3" />
+                        <span className="sr-only">Close tile info</span>
+                      </Button>
+                      <span className="flex items-center gap-2">
+                        <Hexagon className="h-4 w-4" />
+                        Tile
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+
+                  {/* Content */}
+                  <CardContent className="space-y-4 text-sm flex-1 overflow-y-auto">
+                    {/* Location Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Compass className="h-3 w-3" />
+                        LOCATION
+                      </div>
+                      <div className="pl-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Hex Coordinates</span>
+                          <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                            ({selectedTileInfo.coordinates.q}, {selectedTileInfo.coordinates.r})
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">World Position</span>
+                          <div className="grid grid-cols-3 gap-1 text-xs">
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">X</div>
+                              <div className="font-mono text-xs leading-none">{selectedTileInfo.position.x.toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Y</div>
+                              <div className="font-mono text-xs leading-none">{selectedTileInfo.position.y.toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Z</div>
+                              <div className="font-mono text-xs leading-none">{selectedTileInfo.position.z.toFixed(2)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Type:</span>
-                      <span className="font-mono text-blue-600">{selectedTileInfo.tileType}</span>
+
+                    {/* Properties Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Box className="h-3 w-3" />
+                        PROPERTIES
+                      </div>
+                      <div className="pl-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Tile Type</span>
+                          <div className="font-mono text-xs bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded px-2 py-1 font-medium">
+                            {selectedTileInfo.tileType}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Elevation</span>
+                          <div className="flex items-center gap-1">
+                            <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                            <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                              {selectedTileInfo.elevation}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDetailModal(true)}
-                    className="w-full mt-2"
-                  >
-                    View Details
-                  </Button>
-                </div>
+
+                    {/* Transform Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <RotateCw className="h-3 w-3" />
+                        TRANSFORM
+                      </div>
+                      <div className="pl-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Rotation</span>
+                          <div className="flex items-center gap-2">
+                            <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                              {selectedTileInfo.rotation * 60}°
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              (step {selectedTileInfo.rotation})
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edges Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Link className="h-3 w-3" />
+                        EDGES
+                      </div>
+                      <div className="pl-2">
+                        {/* Hexagon-like spatial arrangement */}
+                        <div className="relative w-full mx-auto" style={{ minHeight: '120px', maxWidth: '180px' }}>
+                          {selectedTileInfo.edges.map((edge, index) => {
+                            const directions = ['NE', 'E', 'SE', 'SW', 'W', 'NW'];
+                            const direction = directions[index];
+                            
+                            // Position each edge box spatially around the hexagon with more spacing
+                            let positionClass = '';
+                            switch (direction) {
+                              case 'NE': // Top-right
+                                positionClass = 'absolute top-0 right-0';
+                                break;
+                              case 'E': // Right
+                                positionClass = 'absolute top-1/2 right-0 -translate-y-1/2';
+                                break;
+                              case 'SE': // Bottom-right
+                                positionClass = 'absolute bottom-0 right-0';
+                                break;
+                              case 'SW': // Bottom-left
+                                positionClass = 'absolute bottom-0 left-0';
+                                break;
+                              case 'W': // Left
+                                positionClass = 'absolute top-1/2 left-0 -translate-y-1/2';
+                                break;
+                              case 'NW': // Top-left
+                                positionClass = 'absolute top-0 left-0';
+                                break;
+                            }
+                            
+                            return (
+                              <div key={index} className={`${positionClass} bg-muted/50 rounded px-1.5 py-1 w-14 text-center shadow-sm`}>
+                                <div className="text-[10px] text-muted-foreground font-medium">{direction}</div>
+                                <div className="font-mono text-[9px] leading-tight truncate mt-0.5" title={edge}>
+                                  {edge || 'none'}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Center indicator with better positioning */}
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
+                            <Hexagon className="h-4 w-4 text-muted-foreground/40" />
+                          </div>
+                        </div>
+                        
+                        <div className="text-[10px] text-muted-foreground mt-3 text-center">
+                          Spatial edge layout
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </>
               )}
               
               {selectedValidationInfo && (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <Label className={`text-sm font-medium ${selectedValidationInfo.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                      {selectedValidationInfo.isValid ? 'Edge Compatibility' : 'Edge Incompatibility'}
-                    </Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedValidationInfo(null)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span>Source:</span>
-                      <span className="font-mono">({selectedValidationInfo.sourcePosition.q}, {selectedValidationInfo.sourcePosition.r})</span>
+                <>
+                  {/* Header */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedValidationInfo(null)}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-3 w-3" />
+                        <span className="sr-only">Close validation info</span>
+                      </Button>
+                      <span className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        Validation
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+
+                  {/* Content */}
+                  <CardContent className="space-y-4 text-sm flex-1 overflow-y-auto">
+                    {/* Result Status - Featured at top */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Activity className="h-3 w-3" />
+                        VALIDATION RESULT
+                      </div>
+                      <div className="pl-4">
+                        <div className={`text-sm rounded-lg px-3 py-2 flex items-center gap-3 font-medium ${
+                          selectedValidationInfo.isValid 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' 
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                        }`}>
+                          {selectedValidationInfo.isValid ? (
+                            <>
+                              <CheckCircle className="h-4 w-4" />
+                              <span>EDGES COMPATIBLE</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircleIcon className="h-4 w-4" />
+                              <span>EDGES INCOMPATIBLE</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Target:</span>
-                      <span className="font-mono">({selectedValidationInfo.targetPosition.q}, {selectedValidationInfo.targetPosition.r})</span>
+
+                    {/* Edge Comparison */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <ArrowRight className="h-3 w-3" />
+                        EDGE COMPARISON
+                      </div>
+                      <div className="pl-4 space-y-3">
+                        {/* Source Tile */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-xs font-medium">Source Tile</span>
+                          </div>
+                          <div className="pl-4 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Position</span>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                                ({selectedValidationInfo.sourcePosition.q}, {selectedValidationInfo.sourcePosition.r})
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Type</span>
+                              <div className="text-xs bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded px-2 py-1">
+                                {selectedValidationInfo.stepByStep.sourceTileType}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Edge</span>
+                              <div className="text-xs bg-muted/50 rounded px-2 py-1">
+                                #{selectedValidationInfo.sourceEdgeIndex}: {selectedValidationInfo.sourceEdgeType}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Target Tile */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                            <span className="text-xs font-medium">Target Tile</span>
+                          </div>
+                          <div className="pl-4 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Position</span>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                                ({selectedValidationInfo.targetPosition.q}, {selectedValidationInfo.targetPosition.r})
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Type</span>
+                              <div className="text-xs bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 rounded px-2 py-1">
+                                {selectedValidationInfo.stepByStep.targetTileType}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Edge</span>
+                              <div className="text-xs bg-muted/50 rounded px-2 py-1">
+                                #{selectedValidationInfo.targetEdgeIndex}: {selectedValidationInfo.targetEdgeType}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Edges:</span>
-                      <span className="font-mono">{selectedValidationInfo.sourceEdgeIndex} ↔ {selectedValidationInfo.targetEdgeIndex}</span>
+
+                    {/* Technical Details (Collapsible) */}
+                    <details className="space-y-2">
+                      <summary className="flex items-center gap-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground border-b border-border/50 pb-1">
+                        <Info className="h-3 w-3" />
+                        TECHNICAL DETAILS
+                      </summary>
+                      <div className="pl-4 space-y-3 text-xs">
+                        <div className="space-y-1">
+                          <div className="font-medium text-muted-foreground">Asset Pack Offset</div>
+                          <div className="bg-muted/50 rounded px-2 py-1">
+                            {selectedValidationInfo.stepByStep.assetPackOffset} ({selectedValidationInfo.stepByStep.assetPackOffsetDirection})
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="font-medium text-muted-foreground">Edge Arrays</div>
+                          <div className="space-y-1">
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-1">Original Edges</div>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1 mb-1">
+                                Src: [{selectedValidationInfo.stepByStep.sourceOriginalEdges.map((e, i) => `${i}:${e}`).join(', ')}]
+                              </div>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                                Tgt: [{selectedValidationInfo.stepByStep.targetOriginalEdges.map((e, i) => `${i}:${e}`).join(', ')}]
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-1">Final Edges (after rotation)</div>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1 mb-1">
+                                Src: [{selectedValidationInfo.stepByStep.sourceFinalEdges.map((e, i) => `${i}:${e}`).join(', ')}]
+                              </div>
+                              <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                                Tgt: [{selectedValidationInfo.stepByStep.targetFinalEdges.map((e, i) => `${i}:${e}`).join(', ')}]
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  </CardContent>
+                </>
+              )}
+              
+              {selectedAddonInfo && (
+                <>
+                  {/* Header */}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedAddonInfo(null)}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-3 w-3" />
+                        <span className="sr-only">Close addon info</span>
+                      </Button>
+                      <span className="flex items-center gap-2">
+                        <Layers2 className="h-4 w-4" />
+                        Add-on
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+
+                  {/* Content */}
+                  <CardContent className="space-y-4 text-sm flex-1 overflow-y-auto">
+                    {/* Identity Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Package className="h-3 w-3" />
+                        IDENTITY
+                      </div>
+                      <div className="pl-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Add-on ID</span>
+                          <div className="font-mono text-xs bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 rounded px-2 py-1 font-medium">
+                            {selectedAddonInfo.addonId}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Hex Coordinates</span>
+                          <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                            ({selectedAddonInfo.coordinates.q}, {selectedAddonInfo.coordinates.r})
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDetailModal(true)}
-                    className="w-full mt-2"
-                  >
-                    View Details
-                  </Button>
-                </div>
+
+                    {/* Transform Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <RotateCw className="h-3 w-3" />
+                        LOCAL TRANSFORM
+                      </div>
+                      <div className="pl-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Rotation</span>
+                          <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                            {selectedAddonInfo.localRotation}°
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Scale</span>
+                          <div className="flex items-center gap-1">
+                            <Scale className="h-3 w-3 text-muted-foreground" />
+                            <div className="font-mono text-xs bg-muted/50 rounded px-2 py-1">
+                              {selectedAddonInfo.localScale}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Position</span>
+                          <div className="grid grid-cols-3 gap-1 text-xs">
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">X</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.localPosition[0].toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Y</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.localPosition[1].toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Z</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.localPosition[2].toFixed(2)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* World Position Section */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground border-b border-border/50 pb-1">
+                        <Compass className="h-3 w-3" />
+                        WORLD POSITION
+                      </div>
+                      <div className="pl-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Final Position</span>
+                          <div className="grid grid-cols-3 gap-1 text-xs">
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">X</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.position.x.toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Y</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.position.y.toFixed(2)}</div>
+                            </div>
+                            <div className="bg-muted/50 rounded px-1.5 py-1 text-center">
+                              <div className="text-[10px] text-muted-foreground">Z</div>
+                              <div className="font-mono text-xs leading-none">{selectedAddonInfo.position.z.toFixed(2)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </>
               )}
             </div>
           </Card>
         </div>
       )}
 
-      {/* Detail Modal */}
-      {showDetailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-card rounded-lg shadow-xl border border-border max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className={`text-lg font-semibold ${selectedValidationInfo?.isValid ? 'text-green-600' : selectedTileInfo ? '' : 'text-red-600'}`}>
-                {selectedTileInfo ? 'Tile Details' : 
-                 selectedValidationInfo?.isValid ? 'Valid Edge Connection Details' : 'Invalid Edge Connection Details'}
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDetailModal(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-              {selectedTileInfo && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">Coordinates</Label>
-                      <div className="font-mono text-lg">({selectedTileInfo.coordinates.q}, {selectedTileInfo.coordinates.r})</div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Tile Type</Label>
-                      <div className="font-mono text-lg text-blue-600">{selectedTileInfo.tileType}</div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Elevation</Label>
-                      <div className="font-mono text-lg">{selectedTileInfo.elevation}</div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Rotation</Label>
-                      <div className="font-mono text-lg">{selectedTileInfo.rotation * 60}° (step {selectedTileInfo.rotation})</div>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">3D Position</Label>
-                    <div className="font-mono text-sm mt-1 space-y-1">
-                      <div>X: {selectedTileInfo.position.x.toFixed(3)}</div>
-                      <div>Y: {selectedTileInfo.position.y.toFixed(3)}</div>
-                      <div>Z: {selectedTileInfo.position.z.toFixed(3)}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {selectedValidationInfo && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Card className="p-3">
-                      <Label className="text-sm font-medium">Source Tile</Label>
-                      <div className="space-y-1 mt-1">
-                        <div className="font-mono">({selectedValidationInfo.sourcePosition.q}, {selectedValidationInfo.sourcePosition.r})</div>
-                        <div className="text-sm text-muted-foreground">{selectedValidationInfo.stepByStep.sourceTileType}</div>
-                        <div className="text-xs">Edge {selectedValidationInfo.sourceEdgeIndex}: ({selectedValidationInfo.sourceEdgeType})</div>
-                      </div>
-                    </Card>
-                    <Card className="p-3">
-                      <Label className="text-sm font-medium">Target Tile</Label>
-                      <div className="space-y-1 mt-1">
-                        <div className="font-mono">({selectedValidationInfo.targetPosition.q}, {selectedValidationInfo.targetPosition.r})</div>
-                        <div className="text-sm text-muted-foreground">{selectedValidationInfo.stepByStep.targetTileType}</div>
-                        <div className="text-xs">Edge {selectedValidationInfo.targetEdgeIndex}: ({selectedValidationInfo.targetEdgeType})</div>
-                      </div>
-                    </Card>
-                  </div>
 
-                  <Card className="p-3">
-                    <Label className="text-sm font-medium mb-2 block">Step-by-Step Validation</Label>
-                    <div className="space-y-3 text-xs">
-                      <div>
-                        <div className="font-medium text-gray-600">Asset Pack Configuration:</div>
-                        <div className="ml-2">Offset: {selectedValidationInfo.stepByStep.assetPackOffset} ({selectedValidationInfo.stepByStep.assetPackOffsetDirection})</div>
-                      </div>
-
-                      <div>
-                        <div className="font-medium text-gray-600">1. Original Edges (from asset pack):</div>
-                        <div className="ml-2 space-y-1">
-                          <div>Source: [{selectedValidationInfo.stepByStep.sourceOriginalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                          <div>Target: [{selectedValidationInfo.stepByStep.targetOriginalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="font-medium text-gray-600">2. After Undoing Asset Pack Offset ({selectedValidationInfo.stepByStep.assetPackOffsetDirection === 'clockwise' ? '-' : '+'}{selectedValidationInfo.stepByStep.assetPackOffset}):</div>
-                        <div className="ml-2 space-y-1">
-                          <div>Source: [{selectedValidationInfo.stepByStep.sourceAfterOffset.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                          <div>Target: [{selectedValidationInfo.stepByStep.targetAfterOffset.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="font-medium text-gray-600">3. Final Edges (after tile rotation):</div>
-                        <div className="ml-2 space-y-1">
-                          <div>Source: [{selectedValidationInfo.stepByStep.sourceFinalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                          <div>Target: [{selectedValidationInfo.stepByStep.targetFinalEdges.map((e, i) => `${i}:(${e})`).join(', ')}]</div>
-                        </div>
-                      </div>
-
-                      <div className={`p-2 rounded ${selectedValidationInfo.isValid ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                        <div className="font-medium text-gray-600">4. Connection Check:</div>
-                        <div className="ml-2 space-y-1">
-                          <div>Source edge {selectedValidationInfo.sourceEdgeIndex}: ({selectedValidationInfo.sourceEdgeType})</div>
-                          <div>Target edge {selectedValidationInfo.targetEdgeIndex}: ({selectedValidationInfo.targetEdgeType})</div>
-                          <div className="pt-1 border-t">
-                            <span className="font-medium">Result: </span>
-                            <span className={`font-bold ${selectedValidationInfo.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                              {selectedValidationInfo.isValid ? 'COMPATIBLE ✅' : 'INCOMPATIBLE ❌'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Collapsible UI Controls Panel */}
       <div className="absolute top-4 left-4">
@@ -689,7 +931,7 @@ export default function HexWorldPage() {
                         disabled={isLoading}
                       />
                       <Label htmlFor="interactivity" className="leading-none">
-                        Enable Tile Selection
+                        Selection
                       </Label>
                     </div>
                   </div>
