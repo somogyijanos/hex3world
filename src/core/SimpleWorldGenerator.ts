@@ -38,6 +38,7 @@ export interface LLMPlacementDecision {
   addonPlacements: AddOnPlacement[];
   reasoning: string;
   todoProgress?: string | null;
+  originallyIntendedActions?: boolean; // Track if LLM originally intended to make actions before filtering
 }
 
 // World planning interfaces
@@ -212,10 +213,27 @@ export class SimpleWorldGenerator {
         // Ask LLM to make placement decisions
         const llmDecision = await this.getLLMPlacementDecision(request, currentWorld, placementOptions, assetPack, maxTiles);
 
-        if (!llmDecision || (llmDecision.placements.length === 0 && llmDecision.removals.length === 0)) {
-          const reasoningMsg = llmDecision?.reasoning ? ` - Reasoning: "${llmDecision.reasoning}"` : '';
-          console.log(`❌ STOPPING: LLM chose no actions (no tiles to place or remove)${reasoningMsg}`);
+        if (!llmDecision) {
+          console.log(`❌ STOPPING: Failed to get LLM decision`);
           break;
+        }
+
+        // Check if LLM chose no actions at all (including addons)
+        const hasAnyValidActions = llmDecision.placements.length > 0 || 
+                                  llmDecision.removals.length > 0 || 
+                                  llmDecision.addonPlacements.length > 0;
+
+        if (!hasAnyValidActions) {
+          const reasoningMsg = llmDecision.reasoning ? ` - Reasoning: "${llmDecision.reasoning}"` : '';
+          
+          // Only stop if LLM genuinely chose no actions, not if actions were filtered out
+          if (llmDecision.originallyIntendedActions) {
+            console.log(`⚠️ LLM made choices but they were all invalid, continuing for another iteration${reasoningMsg}`);
+            continue; // Don't break, try another iteration
+          } else {
+            console.log(`❌ STOPPING: LLM chose no actions (no tiles to place, remove, or addons to add)${reasoningMsg}`);
+            break;
+          }
         }
 
         console.log(`🤖 LLM chose ${llmDecision.removals.length} removals, ${llmDecision.placements.length} placements, ${llmDecision.addonPlacements.length} addons`);
@@ -399,7 +417,13 @@ export class SimpleWorldGenerator {
         // Ask LLM to identify and fill holes or remove tiles to resolve impossible holes
         const fillHolesDecision = await this.getLLMFillHolesDecision(request, currentWorld, populatableHoles, unpopulatableHoles, assetPack, maxTiles);
         
-        if (fillHolesDecision && (fillHolesDecision.placements.length > 0 || fillHolesDecision.removals.length > 0)) {
+        // Check if hole filling decision has any valid actions (including addons)
+        const hasAnyHoleFillingActions = fillHolesDecision && 
+                                       (fillHolesDecision.placements.length > 0 || 
+                                        fillHolesDecision.removals.length > 0 || 
+                                        fillHolesDecision.addonPlacements.length > 0);
+
+        if (hasAnyHoleFillingActions) {
           console.log(`🤖 LLM chose ${fillHolesDecision.removals.length} removals and ${fillHolesDecision.placements.length} hole fills`);
           
           // Apply hole-filling removals first (with same safety constraints)
@@ -518,7 +542,13 @@ export class SimpleWorldGenerator {
           console.log(`✅ Applied ${holesRemoved} removals, filled ${holesFilled}/${fillHolesDecision.placements.length} holes, final world: ${currentWorld.tiles.length}/${maxTiles}`);
         } else {
           const reasoningMsg = fillHolesDecision?.reasoning ? ` - Reasoning: "${fillHolesDecision.reasoning}"` : '';
-          console.log(`ℹ️ No holes selected by LLM for filling${reasoningMsg}`);
+          
+          // Check if LLM originally intended hole-filling actions but they were filtered out
+          if (fillHolesDecision?.originallyIntendedActions) {
+            console.log(`⚠️ LLM made hole-filling choices but they were all invalid${reasoningMsg}`);
+          } else {
+            console.log(`ℹ️ No holes selected by LLM for filling${reasoningMsg}`);
+          }
         }
       } else if (fillHolesOptions.length === 0) {
         console.log(`ℹ️ No interior holes found`);
@@ -846,13 +876,13 @@ At each iteration step you will be provided with:
 - for each such position a set of valid tiles that can be placed there
 - for each such valid tile a set of valid add-ons that can be placed on it
 
-At each iteration step you are allowed to:
-- choose an empty position from the list where you want to place a tile
+At each iteration step you are allowed and expected to:
+- choose MULTIPLE empty positions from the list where you want to place a tile
 which you choose from the valid tile options for that position and optionally
 you can choose a valid add-on for that position from the list
-- remove a tile from a non-empty position (based on positions populated in the world)
+- remove MULTIPLE tiles from the current world state
 
-When choosing and placing a tile you should consider the following:
+When choosing and placing tiles and add-ons you should consider the following:
 - the tile should be placed on an allowed empty position
 - choose a valid tile from the list of valid tiles for the chosen position including the rotation, for example:
     - positions (1, 0), (2, 0) and (-1, 1) are valid empty positions
@@ -868,6 +898,7 @@ When choosing and placing a tile you should consider the following:
         - "my-addon-01"
         - "my-addon-02"
         - "my-addon-03"
+- if for a position there are no valid tiles, do not choose it to place a tile there
 - the choice makes sense for the world and the user description, especially pay attention
 to the world generation plan and any progress from previous iterations
 - also analyze the valid tiles' neighbor context to understand how they connect to the current world state,
@@ -882,23 +913,36 @@ so try choosing wisely, consider the asset pack
 - you can also place no tile at all in the current iteration step if you think we are done and we have fulfilled all requirements in the user description and the world generation plan
 - there might be a maximum number of tiles the user wants to place, so you should consider that and choose wisely such that you don't exceed that number while still being creative and interesting and coherent with the user description fulfilling all requirements in it
 
-When removing a tile you should consider the following:
+When removing tiles you should consider the following:
 - the tile should be removed from a non-empty position
 - the choice makes sense for the world and the user description
 - sometimes in earlier steps bad choices might have been made,
 so you have the option to remove a tile to fix the world state,
 i.e. to make it more coherent with the user description
 or to relax constraints resulting in holes or no more valid options to place tiles
+- if for a position there are no valid tiles, it may be a sign that you should remove one or more tiles to make the layout less constrained,
+normally there shouldn't be such positions, if there are such positions, it means constraints are too strict/dense and you should relax them
+- use removals as a strategic tool, don't be afraid to use this oppurtunity
 
 YOUR OUTPUT:
 Your output is a JSON object following the following format:
 {
     "reasoning": "explain your placement decisions and current strategy, even if you choose to place nothing",
-    "todoProgress": "describe where we are in executing the world generation plan, include what you have done so far and what you are going to do next, also include some reasoning regarding neighbor connectivity (chose this tile because it connects to this and this via these edges)",
+    "todoProgress": "describe where we are in executing the world generation plan, include what you have done so far and what you are going to do next, also include some reasoning regarding neighbor connectivity (chose these tiles because they connect to this and this via these edges)",
     "tiles": [
         {
             "tileId": "my-tile-c",
             "position": {"q": 2, "r": 1},
+            "rotation": 0
+        },
+        {
+            "tileId": "my-tile-b",
+            "position": {"q": 2, "r": 2},
+            "rotation": 0
+        },
+        {
+            "tileId": "my-tile-a",
+            "position": {"q": 2, "r": 3},
             "rotation": 0
         }
     ],
@@ -906,6 +950,10 @@ Your output is a JSON object following the following format:
         {
             "addonId": "my-addon-01",
             "position": {"q": 2, "r": 1}
+        },
+        {
+            "addonId": "my-addon-02",
+            "position": {"q": 2, "r": 2}
         }
     ],
     "removals": [
@@ -1455,6 +1503,13 @@ Add-ons: ${addonsInfo}`;
       
       // Handle both old format (placements) and new format (tiles)
       const placementsArray = parsed.tiles || parsed.placements || [];
+      const addonPlacementsArray = parsed["add-ons"] || parsed.addonPlacements || [];
+      const removalsArray = parsed.removals || [];
+      
+      // Track if LLM originally intended any actions (before validation/filtering)
+      const originallyIntendedActions = (Array.isArray(placementsArray) && placementsArray.length > 0) ||
+                                       (Array.isArray(addonPlacementsArray) && addonPlacementsArray.length > 0) ||
+                                       (Array.isArray(removalsArray) && removalsArray.length > 0);
       
       if (!Array.isArray(placementsArray)) {
         console.warn('Invalid tiles/placements in LLM response');
@@ -1529,7 +1584,6 @@ Add-ons: ${addonsInfo}`;
 
       // Parse addon placements - handle both old format (addonPlacements) and new format (add-ons)
       const validAddonPlacements: AddOnPlacement[] = [];
-      const addonPlacementsArray = parsed["add-ons"] || parsed.addonPlacements || [];
       if (Array.isArray(addonPlacementsArray)) {
         for (const addonPlacement of addonPlacementsArray) {
           if (!addonPlacement.position || !addonPlacement.addonId) {
@@ -1566,8 +1620,8 @@ Add-ons: ${addonsInfo}`;
 
       // Parse removals
       const validRemovals: TileRemoval[] = [];
-      if (parsed.removals && Array.isArray(parsed.removals)) {
-        for (const removal of parsed.removals) {
+      if (Array.isArray(removalsArray)) {
+        for (const removal of removalsArray) {
           if (!removal.position) {
             invalidChoices.push(`removal at (${removal.position?.q},${removal.position?.r}) - missing position`);
             continue;
@@ -1592,7 +1646,8 @@ Add-ons: ${addonsInfo}`;
         removals: validRemovals,
         addonPlacements: validAddonPlacements,
         reasoning: parsed.reasoning || 'No reasoning provided',
-        todoProgress: parsed.todoProgress || null
+        todoProgress: parsed.todoProgress || null,
+        originallyIntendedActions
       };
 
     } catch (error) {
