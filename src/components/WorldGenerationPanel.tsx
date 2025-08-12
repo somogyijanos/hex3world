@@ -49,7 +49,23 @@ export function WorldGenerationPanel({
   const [description, setDescription] = useState('');
   const [maxTiles, setMaxTiles] = useState(20);
   const [includeAddons, setIncludeAddons] = useState(true);
-  const [expandExisting, setExpandExisting] = useState(false);
+  const [modifyExisting, setModifyExisting] = useState(false);
+
+  // Auto-select current world's asset pack when modifying existing world
+  const effectiveAssetPack = modifyExisting && currentWorld 
+    ? currentWorld.asset_pack 
+    : selectedAssetPack;
+
+  // Check for asset pack mismatch warning
+  const hasAssetPackMismatch = modifyExisting && currentWorld && 
+    currentWorld.asset_pack !== selectedAssetPack;
+
+  // Update selected asset pack to match current world when modify existing is enabled
+  React.useEffect(() => {
+    if (modifyExisting && currentWorld && currentWorld.asset_pack !== selectedAssetPack) {
+      setSelectedAssetPack(currentWorld.asset_pack);
+    }
+  }, [modifyExisting, currentWorld, selectedAssetPack]);
   
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -81,7 +97,7 @@ export function WorldGenerationPanel({
 
       // Show initial loading progress
       setCurrentProgress({
-        stage: 'expanding',
+        stage: 'generating',
         currentStep: 0,
         totalSteps: (constraints.maxTiles || 20) + 1, // +1 for planning step
         message: `Starting world generation...`,
@@ -91,10 +107,10 @@ export function WorldGenerationPanel({
       });
 
       const request: GenerationRequest = {
-        assetPackId: selectedAssetPack,
+        assetPackId: effectiveAssetPack,
         description: description.trim(),
         constraints,
-        existingWorld: expandExisting ? currentWorld : undefined,
+        existingWorld: modifyExisting ? currentWorld : undefined,
         stream: true // Enable streaming
       };
 
@@ -330,12 +346,12 @@ export function WorldGenerationPanel({
           {currentWorld && currentWorld.tiles.length > 0 && (
             <div className="flex items-center space-x-2">
               <Switch
-                id="expand-existing"
-                checked={expandExisting}
-                onCheckedChange={setExpandExisting}
+                id="modify-existing"
+                checked={modifyExisting}
+                onCheckedChange={setModifyExisting}
               />
-              <Label htmlFor="expand-existing">
-                Expand existing world ({currentWorld.tiles.length} tiles)
+              <Label htmlFor="modify-existing">
+                Edit existing world ({currentWorld.tiles.length} tiles)
               </Label>
             </div>
           )}
@@ -380,7 +396,7 @@ export function WorldGenerationPanel({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {currentProgress.stage === 'expanding' ? 'Generating World' : 
+                    {currentProgress.stage === 'generating' ? 'Generating World' : 
                      currentProgress.stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 </div>

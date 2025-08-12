@@ -63,14 +63,15 @@ You should always follow this description as a guideline to plan the world.
 
 WORLD GENERATION PLAN:
 The world generation plan you have to create aims to provide a detailed plan for the world generation process.
+This may be for creating a new world OR for modifying an existing world (adding, removing, or editing areas).
 It should provide:
-- overall theme for the world
+- overall theme for the world (or modifications to an existing theme)
 - a highly detailed description of the world which is basically an enhanced version of the user description
-- ordered list of specific tasks to complete in order to build the world
+- ordered list of specific tasks to complete in order to build/modify the world
 - each todo item consists mainly in:
-    - a description of the task
+    - a description of the task (which may include removing existing tiles)
     - a list of suggested tiles that can be used to complete the task
-- the order of the todo items is the order in which the tasks should be completed in order to build the world
+- the order of the todo items is the order in which the tasks should be completed in order to build/modify the world
 
 WORLD:
 A world is a set of tiles and add-ons including information where to place which tile on a hexagonal grid.
@@ -91,6 +92,8 @@ At each iteration step an LLM will be provided with:
 At each iteration step the LLM is allowed to:
 - place a tile on an allowed empty position optionally with a valid add-on on it
 - remove a tile from a non-empty position (based on positions populated in the world)
+- replace existing tiles with different tiles (by removing and then placing)
+- modify add-ons on existing tiles
 
 When choosing and placing a tile the LLM should consider the following:
 - the tile should be placed on an allowed empty position
@@ -109,13 +112,15 @@ so try choosing wisely, consider the asset pack
 and choose wisely such that it doesn't exceed that number while still being creative
 and interesting and coherent with the user description fulfilling all requirements in it
 
-When removing a tile the LLM should consider the following:
+When removing or replacing a tile the LLM should consider the following:
 - the tile should be removed from a non-empty position
 - the choice makes sense for the world and the user description
 - sometimes in earlier steps bad choices might have been made,
 so the LLM has the option to remove a tile to fix the world state,
 i.e. to make it more coherent with the user description
 or to relax constraints resulting in holes or no more valid options to place tiles
+- when modifying existing worlds, removal might be part of the user's explicit intent
+- replacements should improve the world according to the user's goals
 
 
 WHAT TO CONSIDER WHEN CREATING THE PLAN:

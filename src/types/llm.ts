@@ -57,7 +57,7 @@ export interface GenerationConstraints {
 }
 
 export interface GenerationProgress {
-  stage: 'planning' | 'expanding' | 'filling_holes' | 'placing_tiles' | 'adding_addons' | 'validating' | 'complete' | 'error';
+  stage: 'planning' | 'generating' | 'filling_holes' | 'placing_tiles' | 'adding_addons' | 'validating' | 'complete' | 'error';
   currentStep: number;
   totalSteps: number;
   message: string;

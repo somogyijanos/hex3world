@@ -133,68 +133,96 @@ export class SimpleWorldGenerator {
         throw new Error(`Asset pack '${request.assetPackId}' not found`);
       }
 
-      // Create initial world or use existing
-      const currentWorld = request.existingWorld || this.worldManager.createWorld(request.assetPackId);
+      // Create initial world or use existing with validation
+      let currentWorld: World;
+      if (request.existingWorld) {
+        // CRITICAL: Validate asset pack compatibility for existing worlds
+        if (request.existingWorld.asset_pack !== request.assetPackId) {
+          throw new Error(
+            `Asset pack mismatch: existing world uses '${request.existingWorld.asset_pack}' ` +
+            `but generation requested with '${request.assetPackId}'. ` +
+            `To expand a world, you must use the same asset pack.`
+          );
+        }
+        
+        // Validate existing world structure against asset pack
+        try {
+          this.worldManager.validateWorld(request.existingWorld);
+          console.log(`✅ Existing world validated successfully (${request.existingWorld.tiles.length} tiles, ${request.existingWorld.addons.length} addons)`);
+        } catch (validationError) {
+          throw new Error(`Invalid existing world: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`);
+        }
+        
+        currentWorld = request.existingWorld;
+      } else {
+        currentWorld = this.worldManager.createWorld(request.assetPackId);
+      }
 
       // Reset progress tracking for new generation
       this.llmPrompter.setLastTodoProgress(null);
 
       const maxTiles = request.constraints?.maxTiles || 20;
 
-      // PLANNING PHASE: Create initial plan if starting from empty world
-      if (currentWorld.tiles.length === 0) {
-        console.log(`\n📋 PLANNING PHASE: Creating strategic plan...`);
-        
-        this.emitEvent('progress', {
-          stage: 'expanding',
-          currentStep: 1,
-          totalSteps: maxTiles + 1, // +1 for planning step
-          message: 'Creating strategic world plan...',
-          placedTiles: 0,
-          validationErrors: 0,
-          currentWorld
+      // PLANNING PHASE: Create strategic plan for both new and existing worlds
+      const isModification = currentWorld.tiles.length > 0;
+      const planningMessage = isModification 
+        ? `Creating modification plan for existing world (${currentWorld.tiles.length} tiles)...`
+        : 'Creating strategic world plan...';
+      
+      console.log(`\n📋 PLANNING PHASE: ${planningMessage}`);
+      
+      this.emitEvent('progress', {
+        stage: 'generating',
+        currentStep: 1,
+        totalSteps: maxTiles + 1, // +1 for planning step
+        message: planningMessage,
+        placedTiles: currentWorld.tiles.length,
+        validationErrors: 0,
+        currentWorld
+      });
+
+      // Check for cancellation before planning
+      if (this.isCancelled) {
+        console.log('🛑 Generation cancelled during planning phase');
+        return {
+          success: false,
+          error: 'Generation cancelled by user'
+        };
+      }
+
+      const currentPlan = await this.worldPlanner.createWorldPlan(request, assetPack, maxTiles);
+      this.llmPrompter.setCurrentPlan(currentPlan);
+      
+      // Track planning LLM call
+      if (currentPlan) {
+        this.trackerManager.trackLLMCall(isModification ? 'modification-planning' : 'world-planning');
+      }
+      
+      if (currentPlan) {
+        console.log(`✅ ${isModification ? 'MODIFICATION' : 'TODO-BASED'} PLAN CREATED:`);
+        console.log(`   Theme: ${currentPlan.theme}`);
+        console.log(`   Description: ${currentPlan.detailedDescription}`);
+        console.log(`   Total Tasks: ${currentPlan.todos.length}`);
+        console.log(`   ${isModification ? 'Modification' : 'TODO'} List:`);
+        currentPlan.todos.forEach((todo, i) => {
+          console.log(`     ${i+1}. ${todo.description}`);
+          console.log(`        - complete when: ${todo.completionCriteria}`);
+          console.log(`        - suggested tiles: ${todo.suggestedTiles?.join(', ')}`);
         });
-
-        // Check for cancellation before planning
-        if (this.isCancelled) {
-          console.log('🛑 Generation cancelled during planning phase');
-          return {
-            success: false,
-            error: 'Generation cancelled by user'
-          };
-        }
-
-        const currentPlan = await this.worldPlanner.createWorldPlan(request, assetPack, maxTiles);
-        this.llmPrompter.setCurrentPlan(currentPlan);
         
-        // Track planning LLM call
-        if (currentPlan) {
-          this.trackerManager.trackLLMCall('world-planning');
-        }
-        
-        if (currentPlan) {
-          console.log(`✅ TODO-BASED PLAN CREATED:`);
-          console.log(`   Theme: ${currentPlan.theme}`);
-          console.log(`   Description: ${currentPlan.detailedDescription}`);
-          console.log(`   Total Tasks: ${currentPlan.todos.length}`);
-          console.log(`   TODO List:`);
-          currentPlan.todos.forEach((todo, i) => {
-            console.log(`     ${i+1}. ${todo.description}`);
-            console.log(`        - complete when: ${todo.completionCriteria}`);
-            console.log(`        - suggested tiles: ${todo.suggestedTiles?.join(', ')}`);
-          });
-        } else {
-          console.log(`⚠️  Failed to create plan, proceeding without one`);
+        if (isModification) {
+          console.log(`   Starting from: ${currentWorld.tiles.length}/${maxTiles} tiles`);
+          console.log(`   Modification capacity: ${maxTiles - currentWorld.tiles.length} additional tiles available`);
         }
       } else {
-        console.log(`ℹ️ Continuing with existing world, skipping planning phase`);
+        console.log(`⚠️  Failed to create ${isModification ? 'modification' : ''} plan, proceeding without one`);
       }
 
       const maxIterations = 50; // Prevent infinite loops
       let iteration = 0;
       
-      // Determine starting step offset based on whether planning was done
-      const planningStepOffset = currentWorld.tiles.length === 0 ? 1 : 0;
+      // Planning step offset is always 1 since we always do planning now
+      const planningStepOffset = 1;
 
       // Iterative generation loop
       while (currentWorld.tiles.length < maxTiles && iteration < maxIterations) {
@@ -215,7 +243,7 @@ export class SimpleWorldGenerator {
         console.log(`\n🔄 ITERATION ${iteration}: ${currentWorld.tiles.length}/${maxTiles} tiles`);
 
         this.emitEvent('progress', {
-          stage: 'expanding',
+          stage: 'generating',
           currentStep: iteration + planningStepOffset,
           totalSteps: maxTiles + planningStepOffset,
           message: `Iteration ${iteration}: Finding placement options...`,
@@ -355,7 +383,7 @@ export class SimpleWorldGenerator {
       }
       
       this.emitEvent('progress', {
-        stage: 'expanding',
+        stage: 'generating',
         currentStep: Math.min(currentWorld.tiles.length + planningStepOffset, maxTiles + planningStepOffset),
         totalSteps: maxTiles + planningStepOffset,
         message: 'Analyzing world for interior holes to fill...',
