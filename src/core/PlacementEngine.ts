@@ -3,7 +3,7 @@ import { AssetPackManager } from './AssetPackManager';
 import { WorldManager } from './WorldManager';
 import { EdgeValidator } from './EdgeValidator';
 import { HexCoordinates } from './HexCoordinates';
-import { TilePlacement, TileRemoval, AddonPlacement, LLMPlacementDecision } from '../types/world-generation';
+import { TilePlacement, TileRemoval, AddonPlacement, AddonRemoval, LLMPlacementDecision } from '../types/world-generation';
 import { GenerationEvent } from '../types/llm';
 
 /**
@@ -31,9 +31,11 @@ export class PlacementEngine {
     tilesPlaced: number;
     tilesRemoved: number;
     addonsPlaced: number;
+    addonsRemoved: number;
     placementFailures: string[];
     removalFailures: string[];
     addonFailures: string[];
+    addonRemovalFailures: string[];
   } {
     
     // Safety constraint: prevent removing more than 25% of current tiles in one iteration
@@ -48,6 +50,13 @@ export class PlacementEngine {
     const { removed: tilesRemoved, failures: removalFailures } = this.applyTileRemovals(
       world, 
       decision.removals.slice(0, actualRemovals),
+      eventEmitter
+    );
+
+    // Apply addon removals before placements to enable replacement
+    const { removed: addonsRemoved, failures: addonRemovalFailures } = this.applyAddonRemovals(
+      world,
+      decision.addonRemovals || [],
       eventEmitter
     );
 
@@ -71,9 +80,11 @@ export class PlacementEngine {
       tilesPlaced,
       tilesRemoved,
       addonsPlaced,
+      addonsRemoved,
       placementFailures,
       removalFailures,
-      addonFailures
+      addonFailures,
+      addonRemovalFailures
     };
   }
 
@@ -117,14 +128,13 @@ export class PlacementEngine {
         }
         addonIndices.forEach(index => world.addons.splice(index, 1));
 
+        // Emit tile removed event
         if (eventEmitter) {
-          eventEmitter('progress', {
-            stage: 'removing',
-            currentStep: world.tiles.length,
-            message: `Removed ${removedTileType} at (${removal.position.q}, ${removal.position.r})`,
-            placedTiles: world.tiles.length,
-            validationErrors: 0,
-            currentWorld: world
+          eventEmitter('tile_removed', {
+            position: { q: removal.position.q, r: removal.position.r },
+            tileType: removedTileType,
+            totalTiles: world.tiles.length,
+            removedAddonCount: addonIndices.length
           });
         }
 
@@ -164,17 +174,17 @@ export class PlacementEngine {
           rotation: placement.rotation
         };
 
+        // Use addTile which will fail if tile already exists (as it should)
         this.worldManager.addTile(world, newTile);
         tilesPlaced++;
 
+        // Emit tile placed event
         if (eventEmitter) {
-          eventEmitter('progress', {
-            stage: 'placing',
-            currentStep: world.tiles.length,
-            message: `Placed ${placement.tileId} at (${placement.position.q}, ${placement.position.r})`,
-            placedTiles: world.tiles.length,
-            validationErrors: 0,
-            currentWorld: world
+          eventEmitter('tile_placed', {
+            position: { q: placement.position.q, r: placement.position.r },
+            tileType: placement.tileId,
+            rotation: placement.rotation,
+            totalTiles: world.tiles.length
           });
         }
 
@@ -184,6 +194,50 @@ export class PlacementEngine {
     }
 
     return { placed: tilesPlaced, failures };
+  }
+
+  /**
+   * Apply addon removals to the world
+   */
+  private applyAddonRemovals(
+    world: World,
+    addonRemovals: AddonRemoval[],
+    eventEmitter?: (type: GenerationEvent['type'], data: unknown) => void
+  ): { removed: number; failures: string[] } {
+    let addonsRemoved = 0;
+    const failures: string[] = [];
+
+    for (const addonRemoval of addonRemovals) {
+      try {
+        // Find the addon at the specified position
+        const addonIndex = world.addons.findIndex(a => a.q === addonRemoval.position.q && a.r === addonRemoval.position.r);
+        
+        if (addonIndex === -1) {
+          failures.push(`addon@(${addonRemoval.position.q},${addonRemoval.position.r}) - no addon at position`);
+          continue;
+        }
+
+        const removedAddon = world.addons[addonIndex];
+        
+        // Remove the addon from the world
+        world.addons.splice(addonIndex, 1);
+        addonsRemoved++;
+
+        // Emit addon removed event
+        if (eventEmitter) {
+          eventEmitter('addon_removed', {
+            addon_id: removedAddon.addon_id,
+            position: { q: removedAddon.q, r: removedAddon.r },
+            totalAddons: world.addons.length
+          });
+        }
+
+      } catch (error) {
+        failures.push(`addon@(${addonRemoval.position.q},${addonRemoval.position.r}) - removal error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    return { removed: addonsRemoved, failures };
   }
 
   /**
@@ -217,7 +271,8 @@ export class PlacementEngine {
         // Check if there's already an addon at this position
         const existingAddon = world.addons.find(a => a.q === addonPlacement.position.q && a.r === addonPlacement.position.r);
         if (existingAddon) {
-          failures.push(`${addonPlacement.addonId}@(${addonPlacement.position.q},${addonPlacement.position.r}) - position already has addon ${existingAddon.addon_id}`);
+          // Placement conflicts with existing addon - this should fail unless explicit removal was requested
+          failures.push(`${addonPlacement.addonId}@(${addonPlacement.position.q},${addonPlacement.position.r}) - position already has addon ${existingAddon.addon_id} (use explicit removal first)`);
           continue;
         }
         
@@ -234,6 +289,17 @@ export class PlacementEngine {
         // Add the addon using WorldManager
         this.worldManager.addAddOn(world, worldAddon);
         addonsPlaced++;
+        
+        // Emit addon placed event
+        if (eventEmitter) {
+          eventEmitter('addon_placed', {
+            addon_id: addonPlacement.addonId,
+            position: { q: addonPlacement.position.q, r: addonPlacement.position.r },
+            localRotation: worldAddon.local_rotation,
+            localScale: worldAddon.local_scale,
+            totalAddons: world.addons.length
+          });
+        }
         
         console.log(`✅ Placed addon ${addonPlacement.addonId} at (${addonPlacement.position.q}, ${addonPlacement.position.r})`);
         

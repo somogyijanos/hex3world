@@ -138,6 +138,9 @@ export type GenerationEventType =
   | 'started' 
   | 'progress' 
   | 'tile_placed' 
+  | 'tile_removed'
+  | 'addon_placed'
+  | 'addon_removed'
   | 'validation_run' 
   | 'error' 
   | 'completed';

@@ -341,12 +341,20 @@ export class SimpleWorldGenerator {
           console.log(`❌ Addon placement failures: ${result.addonFailures.join(', ')}`);
         }
 
+        if (result.addonRemovalFailures.length > 0) {
+          console.log(`❌ Addon removal failures: ${result.addonRemovalFailures.join(', ')}`);
+        }
+
+        if (result.addonsRemoved > 0) {
+          console.log(`🗑️  Removed ${result.addonsRemoved} addons, world now: ${currentWorld.addons.length} addons`);
+        }
+
         if (result.tilesPlaced === 0 && result.tilesRemoved === 0) {
           console.log('❌ STOPPING: No meaningful changes made (no tiles placed or removed successfully)');
           break;
         }
 
-        console.log(`✅ Applied ${result.tilesRemoved} removals, ${result.tilesPlaced}/${llmDecision.placements.length} placements, ${currentWorld.addons.length} total addons, world: ${currentWorld.tiles.length}/${maxTiles}`);
+        console.log(`✅ Applied ${result.tilesRemoved} tile removals, ${result.tilesPlaced}/${llmDecision.placements.length} tile placements, ${result.addonsRemoved} addon removals, ${result.addonsPlaced}/${llmDecision.addonPlacements.length} addon placements, world: ${currentWorld.tiles.length}/${maxTiles} tiles, ${currentWorld.addons.length} addons`);
         
         // Store progress for next iteration
         if (llmDecision.todoProgress) {

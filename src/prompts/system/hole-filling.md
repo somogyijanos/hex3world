@@ -161,6 +161,11 @@ Your output is a JSON object following the following format:
         {
             "position": {"q": 1, "r": 0}
         }
+    ],
+    "addon-removals": [
+        {
+            "position": {"q": 2, "r": 1}
+        }
     ]
 }
 You should ONLY output the JSON object, nothing else.

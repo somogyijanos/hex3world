@@ -29,6 +29,7 @@ interface WorldGenerationPanelProps {
   assetPackManager: AssetPackManager;
   availableAssetPacks: string[];
   currentWorld?: World;
+  generationMode: 'create' | 'edit';
   onWorldGenerated: (world: World, savedWorldId?: string) => void;
   onProgressUpdate?: (progress: GenerationProgress) => void;
   onGenerationStateChange?: (isGenerating: boolean) => void;
@@ -39,6 +40,7 @@ export function WorldGenerationPanel({
   assetPackManager,
   availableAssetPacks,
   currentWorld,
+  generationMode,
   onWorldGenerated,
   onProgressUpdate,
   onGenerationStateChange,
@@ -49,23 +51,25 @@ export function WorldGenerationPanel({
   const [description, setDescription] = useState('');
   const [maxTiles, setMaxTiles] = useState(20);
   const [includeAddons, setIncludeAddons] = useState(true);
-  const [modifyExisting, setModifyExisting] = useState(false);
 
-  // Auto-select current world's asset pack when modifying existing world
-  const effectiveAssetPack = modifyExisting && currentWorld 
+  // Determine if we're in edit mode
+  const isEditMode = generationMode === 'edit';
+
+  // Auto-select current world's asset pack when editing existing world
+  const effectiveAssetPack = isEditMode && currentWorld 
     ? currentWorld.asset_pack 
     : selectedAssetPack;
 
   // Check for asset pack mismatch warning
-  const hasAssetPackMismatch = modifyExisting && currentWorld && 
+  const hasAssetPackMismatch = isEditMode && currentWorld && 
     currentWorld.asset_pack !== selectedAssetPack;
 
-  // Update selected asset pack to match current world when modify existing is enabled
+  // Update selected asset pack to match current world when in edit mode
   React.useEffect(() => {
-    if (modifyExisting && currentWorld && currentWorld.asset_pack !== selectedAssetPack) {
+    if (isEditMode && currentWorld && currentWorld.asset_pack !== selectedAssetPack) {
       setSelectedAssetPack(currentWorld.asset_pack);
     }
-  }, [modifyExisting, currentWorld, selectedAssetPack]);
+  }, [isEditMode, currentWorld, selectedAssetPack]);
   
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -110,7 +114,7 @@ export function WorldGenerationPanel({
         assetPackId: effectiveAssetPack,
         description: description.trim(),
         constraints,
-        existingWorld: modifyExisting ? currentWorld : undefined,
+        existingWorld: isEditMode ? currentWorld : undefined,
         stream: true // Enable streaming
       };
 
@@ -300,7 +304,7 @@ export function WorldGenerationPanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-5 w-5" />
-          AI World Generator
+          {isEditMode ? 'Edit World with AI' : 'Create New World with AI'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -309,7 +313,11 @@ export function WorldGenerationPanel({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="asset-pack">Asset Pack</Label>
-            <Select value={selectedAssetPack} onValueChange={setSelectedAssetPack}>
+            <Select 
+              value={selectedAssetPack} 
+              onValueChange={setSelectedAssetPack}
+              disabled={isEditMode}
+            >
               <SelectTrigger id="asset-pack">
                 <SelectValue placeholder="Select an asset pack" />
               </SelectTrigger>
@@ -329,30 +337,40 @@ export function WorldGenerationPanel({
                 })}
               </SelectContent>
             </Select>
+            {isEditMode && (
+              <p className="text-xs text-muted-foreground">
+                Asset pack is locked to current world&apos;s pack: {effectiveAssetPack}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">World Description</Label>
+            <Label htmlFor="description">
+              {isEditMode ? 'Describe changes to make' : 'World Description'}
+            </Label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the world you want to generate (e.g., 'A peaceful village by a lake with roads connecting different areas')"
+              placeholder={
+                isEditMode 
+                  ? "Describe what changes you want to make to the current world (e.g., 'Add a market square in the center' or 'Connect the buildings with paths')"
+                  : "Describe the world you want to generate (e.g., 'A peaceful village by a lake with roads connecting different areas')"
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {currentWorld && currentWorld.tiles.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="modify-existing"
-                checked={modifyExisting}
-                onCheckedChange={setModifyExisting}
-              />
-              <Label htmlFor="modify-existing">
-                Edit existing world ({currentWorld.tiles.length} tiles)
-              </Label>
+          {isEditMode && currentWorld && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                <Wand2 className="h-4 w-4" />
+                Editing Current World
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-300">
+                Starting with {currentWorld.tiles.length} tiles using {currentWorld.asset_pack} asset pack
+              </p>
             </div>
           )}
         </div>
@@ -454,7 +472,7 @@ export function WorldGenerationPanel({
               className="flex-1"
             >
               <Play className="h-4 w-4 mr-2" />
-              Generate World
+              {isEditMode ? 'Edit World' : 'Generate World'}
             </Button>
           )}
           <Button

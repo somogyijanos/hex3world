@@ -12,6 +12,10 @@ export interface TileRemoval {
   position: { q: number; r: number };
 }
 
+export interface AddonRemoval {
+  position: { q: number; r: number };
+}
+
 export interface AddonPlacement {
   position: { q: number; r: number };
   addonId: string;
@@ -23,6 +27,7 @@ export interface LLMPlacementDecision {
   placements: TilePlacement[];
   removals: TileRemoval[];
   addonPlacements: AddonPlacement[];
+  addonRemovals: AddonRemoval[];
   reasoning: string;
   todoProgress?: string | null;
   originallyIntendedActions?: boolean; // Track if LLM originally intended to make actions before filtering
@@ -64,7 +69,9 @@ export interface PlacementResult {
   tilesPlaced: number;
   tilesRemoved: number;
   addonsPlaced: number;
+  addonsRemoved: number;
   placementFailures: string[];
   removalFailures: string[];
   addonFailures: string[];
+  addonRemovalFailures: string[];
 }

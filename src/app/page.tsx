@@ -52,6 +52,7 @@ export default function HexWorldPage() {
   const [selectedAddonInfo, setSelectedAddonInfo] = useState<AddonInfo | null>(null);
   const [isDarkMode] = useState(false);
   const [showGenerationPanel, setShowGenerationPanel] = useState(false);
+  const [generationMode, setGenerationMode] = useState<'create' | 'edit'>('create');
   const [isGenerating, setIsGenerating] = useState(false);
   const [availableWorlds, setAvailableWorlds] = useState<WorldEntry[]>([]);
 
@@ -863,6 +864,21 @@ export default function HexWorldPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    
+                    {/* Edit Current World button - positioned near world selection for logical grouping */}
+                    <Button
+                      onClick={() => {
+                        setGenerationMode('edit');
+                        setShowGenerationPanel(true);
+                      }}
+                      disabled={isLoading || !currentWorldData}
+                      className="w-full h-7 text-xs"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Wand2 className="h-3 w-3 mr-1" />
+                      Edit with AI
+                    </Button>
                   </div>
 
                   {/* Display Options */}
@@ -990,15 +1006,18 @@ export default function HexWorldPage() {
 
                   {/* AI Generation */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">AI GENERATION</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">CREATE NEW WORLD</Label>
                     <Button
-                      onClick={() => setShowGenerationPanel(true)}
+                      onClick={() => {
+                        setGenerationMode('create');
+                        setShowGenerationPanel(true);
+                      }}
                       disabled={isLoading}
                       className="w-full h-8 text-xs"
                       variant="default"
                     >
                       <Wand2 className="h-3 w-3 mr-1" />
-                      Generate World
+                      Generate with AI
                     </Button>
                   </div>
 
@@ -1074,6 +1093,7 @@ export default function HexWorldPage() {
               assetPackManager={assetManagerRef.current!}
               availableAssetPacks={AVAILABLE_ASSET_PACKS.map(pack => pack.id)}
               currentWorld={currentWorldData || undefined}
+              generationMode={generationMode}
               onWorldGenerated={async (world, savedWorldId) => {
                 // Update UI - world is already saved by the backend if saving is enabled
                 setCurrentWorldData(world);

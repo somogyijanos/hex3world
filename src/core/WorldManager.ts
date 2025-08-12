@@ -186,6 +186,8 @@ export class WorldManager {
     world.tiles.push(tile);
   }
 
+
+
   /**
    * Remove a tile from the world
    */

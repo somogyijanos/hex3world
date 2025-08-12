@@ -2,7 +2,7 @@ import { World, AssetPack } from '../types/index';
 import { GenerationRequest } from '../types/llm';
 import { PositionOptions, PlacementOption } from './PlacementOptionsCalculator';
 import { HexCoordinates } from './HexCoordinates';
-import { WorldPlan, LLMPlacementDecision, TilePlacement, TileRemoval, AddonPlacement } from '../types/world-generation';
+import { WorldPlan, LLMPlacementDecision, TilePlacement, TileRemoval, AddonPlacement, AddonRemoval } from '../types/world-generation';
 import { PromptLoader } from '../lib/prompt-loader';
 
 /**
@@ -246,11 +246,13 @@ Please output your JSON object now.`;
       const placementsArray = parsed.tiles || parsed.placements || [];
       const addonPlacementsArray = parsed["add-ons"] || parsed.addonPlacements || [];
       const removalsArray = parsed.removals || [];
+      const addonRemovalsArray = parsed["addon-removals"] || parsed.addonRemovals || [];
       
       // Track if LLM originally intended any actions (before validation/filtering)
       const originallyIntendedActions = (Array.isArray(placementsArray) && placementsArray.length > 0) ||
                                        (Array.isArray(addonPlacementsArray) && addonPlacementsArray.length > 0) ||
-                                       (Array.isArray(removalsArray) && removalsArray.length > 0);
+                                       (Array.isArray(removalsArray) && removalsArray.length > 0) ||
+                                       (Array.isArray(addonRemovalsArray) && addonRemovalsArray.length > 0);
       
       if (!Array.isArray(placementsArray)) {
         console.warn('Invalid tiles/placements in LLM response');
@@ -352,6 +354,29 @@ Please output your JSON object now.`;
         }
       }
 
+      // Parse addon removals
+      const validAddonRemovals: AddonRemoval[] = [];
+      if (Array.isArray(addonRemovalsArray)) {
+        for (const addonRemoval of addonRemovalsArray) {
+          if (!addonRemoval.position) {
+            invalidChoices.push(`addon-removal at (${addonRemoval.position?.q},${addonRemoval.position?.r}) - missing position`);
+            continue;
+          }
+
+          // Check if there's actually an addon at this position to remove
+          const existingAddon = currentWorld.addons.find(a => 
+            a.q === addonRemoval.position.q && a.r === addonRemoval.position.r
+          );
+
+          if (!existingAddon) {
+            invalidChoices.push(`addon-removal at (${addonRemoval.position.q},${addonRemoval.position.r}) - no addon found at position`);
+            continue;
+          }
+
+          validAddonRemovals.push(addonRemoval);
+        }
+      }
+
       if (invalidChoices.length > 0) {
         console.log(`❌ Invalid LLM choices filtered: ${invalidChoices.join(', ')}`);
       }
@@ -360,6 +385,7 @@ Please output your JSON object now.`;
         placements: candidatePlacements,
         removals: validRemovals,
         addonPlacements: validAddonPlacements,
+        addonRemovals: validAddonRemovals,
         reasoning: parsed.reasoning || 'No reasoning provided',
         todoProgress: parsed.todoProgress || null,
         originallyIntendedActions

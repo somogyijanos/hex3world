@@ -174,6 +174,13 @@ When removing tiles you should consider the following:
 so you have the option to remove a tile to fix the world state,
 i.e. to make it more coherent with the user description
 or to relax constraints resulting in holes or no more valid options to place tiles
+
+When removing an addon you should consider:
+- the addon should be removed from a position that currently has an addon
+- useful for replacing an addon with a different one (remove then place)
+- useful for clearing space or changing the world composition
+- IMPORTANT: if you want to replace a tile or addon, you must EXPLICITLY remove it first,
+  then place the new one. Direct placement over existing content will fail.
 - if for a position there are no valid tiles, it may be a sign that you should remove one or more tiles to make the layout less constrained,
 normally there shouldn't be such positions, if there are such positions, it means constraints are too strict/dense and you should relax them
 - use removals as a strategic tool, don't be afraid to use this oppurtunity
@@ -213,6 +220,11 @@ Your output is a JSON object following the following format:
     "removals": [
         {
             "position": {"q": 1, "r": 0}
+        }
+    ],
+    "addon-removals": [
+        {
+            "position": {"q": 2, "r": 1}
         }
     ]
 }
