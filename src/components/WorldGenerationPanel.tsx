@@ -103,12 +103,16 @@ export function WorldGenerationPanel({
         throw new Error(result.error || 'Failed to generate world');
       }
 
-      // Show completion
+      // Show completion with filename if available
+      const completionMessage = result.savedFilename 
+        ? `World saved as: ${result.savedFilename}` 
+        : 'World generation completed successfully!';
+        
       setCurrentProgress({
         stage: 'complete',
         currentStep: 10,
         totalSteps: 10,
-        message: 'World generation completed successfully!',
+        message: completionMessage,
         placedTiles: result.world.tiles.length,
         validationErrors: result.validationSummary?.invalidEdges || 0,
         currentWorld: result.world
@@ -117,11 +121,12 @@ export function WorldGenerationPanel({
       // Call success callback
       onWorldGenerated(result.world);
       
-      // Clear progress after a short delay
+      // Clear progress after a delay (longer if showing filename)
+      const delay = result.savedFilename ? 4000 : 2000;
       setTimeout(() => {
         setCurrentProgress(null);
         setIsGenerating(false);
-      }, 2000);
+      }, delay);
 
     } catch (err) {
       setIsGenerating(false);

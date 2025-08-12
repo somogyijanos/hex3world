@@ -80,6 +80,13 @@ export class SimpleWorldGenerator {
   }
 
   /**
+   * Get the current world generation plan
+   */
+  getCurrentPlan(): WorldPlan | null {
+    return this.currentPlan;
+  }
+
+  /**
    * Add event handler for generation progress
    */
   addEventListener(handler: GenerationEventHandler): void {

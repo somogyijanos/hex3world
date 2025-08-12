@@ -1073,28 +1073,7 @@ export default function HexWorldPage() {
               availableAssetPacks={AVAILABLE_ASSET_PACKS.map(pack => pack.id)}
               currentWorld={currentWorldData || undefined}
               onWorldGenerated={async (world) => {
-                // Save the generated world (if enabled)
-                try {
-                  const response = await fetch('/api/save-world', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ world })
-                  });
-                  
-                  if (response.ok) {
-                    const result = await response.json();
-                    console.log('World saved:', result.message);
-                  } else if (response.status === 403) {
-                    // World saving is disabled - this is expected behavior
-                    console.log('World saving is disabled in environment configuration');
-                  } else {
-                    console.error('Failed to save world:', await response.text());
-                  }
-                } catch (error) {
-                  console.error('Error saving world:', error);
-                }
-
-                // Update UI
+                // Update UI - world is already saved by the backend if saving is enabled
                 setCurrentWorldData(world);
                 if (hexRendererRef.current) {
                   // Ensure the required asset pack is loaded before rendering
@@ -1103,7 +1082,7 @@ export default function HexWorldPage() {
                 }
                 setShowGenerationPanel(false);
 
-                // Refresh available worlds list
+                // Refresh available worlds list to show the newly saved world
                 await refreshAvailableWorlds();
               }}
               onProgressUpdate={(progress) => {
