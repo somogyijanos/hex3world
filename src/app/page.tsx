@@ -662,17 +662,19 @@ export default function HexWorldPage() {
                         </Label>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="validation"
-                          checked={showValidation}
-                          onCheckedChange={handleValidationVisibilityToggle}
-                          disabled={isLoading}
-                        />
-                        <Label htmlFor="validation" className="leading-none">
-                          Validation
-                        </Label>
-                      </div>
+                      {validationSummary && (
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="validation"
+                            checked={showValidation}
+                            onCheckedChange={handleValidationVisibilityToggle}
+                            disabled={isLoading}
+                          />
+                          <Label htmlFor="validation" className="leading-none">
+                            Validation
+                          </Label>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
