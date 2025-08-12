@@ -16,7 +16,7 @@ function generateThemeBasedFilename(theme: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '') // Remove special characters except spaces
     .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .substring(0, 30); // Limit length
+    .substring(0, 150); // Limit length to 100 characters (much higher threshold)
   
   return `${sanitizedTheme}-${shortUid}.json`;
 }
