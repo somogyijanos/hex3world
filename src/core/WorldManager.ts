@@ -343,8 +343,10 @@ export class WorldManager {
       throw new WorldValidationError('tiles must be an array', 'tiles');
     }
 
+    // Initialize addons array if missing (for backward compatibility)
     if (!Array.isArray(world.addons)) {
-      throw new WorldValidationError('addons must be an array', 'addons');
+      console.warn('World missing addons array, initializing as empty array');
+      world.addons = [];
     }
 
     return world as unknown as World;

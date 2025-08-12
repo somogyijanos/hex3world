@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AssetPackManager } from '@/core/AssetPackManager';
 import { SimpleWorldGenerator } from '@/core/SimpleWorldGenerator';
 import { getLLMConfig, isLLMConfigured } from '@/lib/llm-config';
-import { GenerationRequest, GenerationProgress } from '@/types/llm';
+import { GenerationRequest } from '@/types/llm';
+import { 
+  GenerationRequestSchema, 
+  validateAssetPackId, 
+  validateAndSanitizeDescription, 
+  validateSessionId,
+  moderateContent
+} from '@/lib/validation';
 
 /**
  * Generate a filename from theme with a short UID for uniqueness
@@ -21,11 +28,54 @@ function generateThemeBasedFilename(theme: string): string {
   return `${sanitizedTheme}-${shortUid}.json`;
 }
 
-// Store for managing generation sessions
-const generationSessions = new Map<string, { generator: SimpleWorldGenerator; cancelled: boolean }>();
+// Enhanced session management with cleanup and limits
+interface GenerationSession {
+  generator: SimpleWorldGenerator;
+  cancelled: boolean;
+  createdAt: number;
+  clientId: string;
+}
+
+const generationSessions = new Map<string, GenerationSession>();
+const MAX_SESSIONS = parseInt(process.env.MAX_CONCURRENT_SESSIONS || '50');
+const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MS || '1800000'); // 30 minutes
+
+// Cleanup function to remove expired sessions
+function cleanupExpiredSessions() {
+  const now = Date.now();
+  let cleanedCount = 0;
+  
+  for (const [sessionId, session] of generationSessions.entries()) {
+    if (now - session.createdAt > SESSION_TIMEOUT) {
+      try {
+        session.generator.cancel();
+      } catch (error) {
+        console.warn('Error cancelling expired session:', sessionId, error);
+      }
+      generationSessions.delete(sessionId);
+      cleanedCount++;
+    }
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`Cleaned up ${cleanedCount} expired generation sessions`);
+  }
+}
+
+// Cleanup sessions every 10 minutes
+setInterval(cleanupExpiredSessions, 10 * 60 * 1000);
+
+function getClientIdentifier(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
+  return ip;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Cleanup expired sessions on each request
+    cleanupExpiredSessions();
+    
     // Check if LLM is configured
     if (!isLLMConfigured()) {
       return NextResponse.json({ 
@@ -33,40 +83,100 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const requestData: GenerationRequest = await request.json();
+    // Parse and validate request body
+    let requestData: unknown;
+    try {
+      requestData = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
+    const clientId = getClientIdentifier(request);
 
     // Check if this is a cancellation request
-    if (requestData.action === 'cancel' && requestData.sessionId) {
+    if (typeof requestData === 'object' && requestData !== null && 
+        'action' in requestData && 'sessionId' in requestData &&
+        requestData.action === 'cancel' && typeof requestData.sessionId === 'string') {
+      if (!validateSessionId(requestData.sessionId)) {
+        return NextResponse.json({ error: 'Invalid session ID format' }, { status: 400 });
+      }
+      
       const session = generationSessions.get(requestData.sessionId);
-      if (session) {
+      if (session && session.clientId === clientId) {
         session.cancelled = true;
-        // Call cancel method on the generator
         session.generator.cancel();
         generationSessions.delete(requestData.sessionId);
         console.log(`🛑 Cancelled generation session: ${requestData.sessionId}`);
         return NextResponse.json({ success: true, cancelled: true });
       }
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
+    }
+
+    // Validate request using Zod schema
+    const validationResult = GenerationRequestSchema.safeParse(requestData);
+    if (!validationResult.success) {
+      return NextResponse.json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message
+        }))
+      }, { status: 400 });
+    }
+
+    const validatedData = validationResult.data as GenerationRequest;
+
+    // Additional security validations
+    if (!validateAssetPackId(validatedData.assetPackId)) {
+      return NextResponse.json({ 
+        error: 'Invalid or unauthorized asset pack ID' 
+      }, { status: 400 });
+    }
+
+    // Content moderation
+    const moderationResult = moderateContent(validatedData.description);
+    if (!moderationResult.allowed) {
+      console.warn('Content moderation blocked request:', { clientId, description: validatedData.description });
+      return NextResponse.json({ 
+        error: moderationResult.reason || 'Content violates usage policies'
+      }, { status: 400 });
+    }
+
+    // Additional description sanitization and validation
+    try {
+      validatedData.description = validateAndSanitizeDescription(validatedData.description);
+    } catch (error) {
+      console.warn('Suspicious content detected:', { clientId, error: error instanceof Error ? error.message : 'Unknown error' });
+      return NextResponse.json({ 
+        error: 'Description contains potentially harmful content' 
+      }, { status: 400 });
     }
 
     // Check if this is a streaming request
-    if (requestData.stream) {
-      return handleStreamingGeneration(requestData);
+    if (validatedData.stream) {
+      return handleStreamingGeneration(validatedData, clientId);
     }
 
-    // Validate request
-    if (!requestData.assetPackId || !requestData.description) {
+    // Check session limits
+    if (generationSessions.size >= MAX_SESSIONS) {
       return NextResponse.json({ 
-        error: 'Asset pack ID and description are required' 
-      }, { status: 400 });
+        error: 'Server is currently at capacity. Please try again later.' 
+      }, { status: 503 });
     }
 
     // Initialize asset pack manager
     const assetPackManager = new AssetPackManager();
     
-    // Load the asset pack
-    const assetPackUrl = `/assets/packs/${requestData.assetPackId}.json`;
-    await assetPackManager.loadAssetPackFromUrl(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}${assetPackUrl}`);
+    // Load the asset pack with validation
+    const assetPackUrl = `/assets/packs/${validatedData.assetPackId}.json`;
+    try {
+      await assetPackManager.loadAssetPackFromUrl(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}${assetPackUrl}`);
+    } catch (error) {
+      console.error('Failed to load asset pack:', validatedData.assetPackId, error);
+      return NextResponse.json({ 
+        error: 'Failed to load specified asset pack' 
+      }, { status: 400 });
+    }
 
     // Initialize world generator
     const generator = new SimpleWorldGenerator(assetPackManager);
@@ -75,12 +185,19 @@ export async function POST(request: NextRequest) {
     const llmConfig = getLLMConfig();
     generator.setLLMProvider(llmConfig);
 
-    // Generate session ID and store session
+    // Generate secure session ID and store session
     const sessionId = Math.random().toString(36).substring(2, 15);
-    generationSessions.set(sessionId, { generator, cancelled: false });
+    generationSessions.set(sessionId, { 
+      generator, 
+      cancelled: false, 
+      createdAt: Date.now(),
+      clientId 
+    });
+
+    console.log('Starting world generation:', { sessionId, clientId, assetPack: validatedData.assetPackId });
 
     // Generate world
-    const result = await generator.generateWorld(requestData);
+    const result = await generator.generateWorld(validatedData);
 
     if (!result.success) {
       return NextResponse.json({ 
@@ -147,7 +264,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleStreamingGeneration(requestData: GenerationRequest) {
+async function handleStreamingGeneration(requestData: GenerationRequest, clientId: string) {
   const encoder = new TextEncoder();
   
   const stream = new ReadableStream({
@@ -167,9 +284,26 @@ async function handleStreamingGeneration(requestData: GenerationRequest) {
         const llmConfig = getLLMConfig();
         generator.setLLMProvider(llmConfig);
 
+        // Check session limits for streaming as well
+        if (generationSessions.size >= MAX_SESSIONS) {
+          const errorData = JSON.stringify({
+            type: 'error',
+            error: 'Server is currently at capacity. Please try again later.',
+            timestamp: Date.now()
+          });
+          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+          controller.close();
+          return;
+        }
+
         // Generate session ID and store session
         const sessionId = Math.random().toString(36).substring(2, 15);
-        generationSessions.set(sessionId, { generator, cancelled: false });
+        generationSessions.set(sessionId, { 
+          generator, 
+          cancelled: false, 
+          createdAt: Date.now(),
+          clientId 
+        });
 
         // Send initial response with session ID
         const initialData = JSON.stringify({ 

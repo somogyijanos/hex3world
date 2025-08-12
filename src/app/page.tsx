@@ -186,6 +186,12 @@ export default function HexWorldPage() {
         throw new Error(`Invalid world data format in '${world.name}'`);
       }
       
+      // Ensure addons array exists (for backward compatibility with older world files)
+      if (!Array.isArray(worldData.addons)) {
+        console.warn(`World '${world.name}' missing addons array, initializing as empty array`);
+        worldData.addons = [];
+      }
+      
       // Load the required asset pack if not already loaded
       await ensureAssetPackLoaded(worldData.asset_pack);
       

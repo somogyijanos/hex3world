@@ -1117,9 +1117,13 @@ export class HexWorldRenderer {
       await this.renderTile(worldTile, assetPack);
     }
 
-    // Render addons
-    for (const worldAddon of world.addons) {
-      await this.renderAddon(worldAddon, assetPack, world);
+    // Render addons (with safety check)
+    if (Array.isArray(world.addons)) {
+      for (const worldAddon of world.addons) {
+        await this.renderAddon(worldAddon, assetPack, world);
+      }
+    } else {
+      console.warn('World addons is not an array, skipping addon rendering');
     }
 
     // Reset world group transformations (no longer needed)
