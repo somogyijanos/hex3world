@@ -43,3 +43,28 @@ export interface WorldPlan {
   todos: TodoItem[];
   reasoning: string;
 }
+
+// Helper interface for tracking generation progress
+export interface GenerationTracker {
+  start_time: number; // timestamp when generation started
+  iterations: number;
+  tiles_placed: number;
+  tiles_removed: number;
+  addons_placed: number;
+  placement_failures: number;
+  removal_failures: number;
+  addon_failures: number;
+  llm_calls: number;
+  total_tokens?: number;
+  prompts_used: Set<string>; // Track which prompt types were used
+}
+
+// Result interface for tracking placement outcomes
+export interface PlacementResult {
+  tilesPlaced: number;
+  tilesRemoved: number;
+  addonsPlaced: number;
+  placementFailures: string[];
+  removalFailures: string[];
+  addonFailures: string[];
+}

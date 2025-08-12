@@ -84,10 +84,80 @@ export interface WorldAddOn {
   local_scale: number;
 }
 
+// Generation metadata for tracking world creation
+export interface GenerationMetadata {
+  // Basic generation info
+  generated_at: string; // ISO timestamp
+  generated_by: string; // generator type (e.g., 'llm-world-generator', 'simple-world-generator')
+  
+  // Request information
+  original_description: string; // User's original description
+  asset_pack_used: string; // Asset pack ID used
+  constraints?: {
+    max_tiles?: number;
+    min_tiles?: number;
+    preferred_tile_types?: string[];
+    forbidden_tile_types?: string[];
+    theme?: string;
+    center_position?: { q: number; r: number };
+    max_radius?: number;
+    include_addons?: boolean;
+  };
+  
+  // Planning information (if available)
+  plan?: {
+    theme: string;
+    detailed_description: string;
+    reasoning: string;
+    todos: Array<{
+      id: string;
+      description: string;
+      status: 'pending' | 'in_progress' | 'completed';
+      suggested_tiles?: string[];
+      completion_criteria: string;
+    }>;
+  };
+  
+  // Generation process information
+  generation_stats: {
+    total_iterations: number;
+    tiles_placed: number;
+    tiles_removed: number;
+    addons_placed: number;
+    placement_failures: number;
+    removal_failures: number;
+    addon_failures: number;
+    validation_errors: number;
+    generation_time_ms: number; // Total time taken
+  };
+  
+  // Final world composition
+  composition: {
+    tile_counts: Record<string, number>; // tile_type -> count
+    addon_counts: Record<string, number>; // addon_id -> count
+    total_tiles: number;
+    total_addons: number;
+    unique_tile_types: number;
+    unique_addon_types: number;
+  };
+  
+  // LLM specific metadata (if applicable)
+  llm_metadata?: {
+    model_used?: string;
+    total_llm_calls: number;
+    total_tokens_used?: number;
+    average_response_time_ms?: number;
+    prompts_used: string[]; // List of prompt types used (e.g., 'planning', 'tile-placement', 'hole-filling')
+  };
+}
+
 export interface World {
   asset_pack: string; // references AssetPack.id
   tiles: WorldTile[];
   addons: WorldAddOn[];
+  
+  // Comprehensive generation metadata
+  generation_metadata?: GenerationMetadata;
 }
 
 // Hex Coordinate System (simplified)

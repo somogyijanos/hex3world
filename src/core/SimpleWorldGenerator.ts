@@ -19,6 +19,8 @@ import {
 import { LLMPrompter } from './LLMPrompter';
 import { WorldPlanner } from './WorldPlanner';
 import { PlacementEngine } from './PlacementEngine';
+import { GenerationTrackerManager } from './GenerationTrackerManager';
+import { GenerationMetadataCreator } from './GenerationMetadataCreator';
 
 export class SimpleWorldGenerator {
   private assetPackManager: AssetPackManager;
@@ -29,6 +31,7 @@ export class SimpleWorldGenerator {
   private llmPrompter: LLMPrompter;
   private worldPlanner: WorldPlanner;
   private placementEngine: PlacementEngine;
+  private trackerManager: GenerationTrackerManager;
 
   constructor(assetPackManager: AssetPackManager) {
     this.assetPackManager = assetPackManager;
@@ -37,6 +40,7 @@ export class SimpleWorldGenerator {
     this.llmPrompter = new LLMPrompter();
     this.worldPlanner = new WorldPlanner();
     this.placementEngine = new PlacementEngine(assetPackManager, this.worldManager);
+    this.trackerManager = new GenerationTrackerManager();
   }
 
   /**
@@ -53,6 +57,8 @@ export class SimpleWorldGenerator {
   getCurrentPlan(): WorldPlan | null {
     return this.llmPrompter.getCurrentPlan();
   }
+
+
 
   /**
    * Add event handler for generation progress
@@ -97,6 +103,9 @@ export class SimpleWorldGenerator {
     }
 
     try {
+      // Initialize generation tracking
+      this.trackerManager.initialize();
+      
       this.emitEvent('started', { request });
 
       // Log initial generation parameters
@@ -137,6 +146,11 @@ export class SimpleWorldGenerator {
         const currentPlan = await this.worldPlanner.createWorldPlan(request, assetPack, maxTiles);
         this.llmPrompter.setCurrentPlan(currentPlan);
         
+        // Track planning LLM call
+        if (currentPlan) {
+          this.trackerManager.trackLLMCall('world-planning');
+        }
+        
         if (currentPlan) {
           console.log(`✅ TODO-BASED PLAN CREATED:`);
           console.log(`   Theme: ${currentPlan.theme}`);
@@ -161,6 +175,9 @@ export class SimpleWorldGenerator {
       // Iterative generation loop
       while (currentWorld.tiles.length < maxTiles && iteration < maxIterations) {
         iteration++;
+
+        // Update iteration tracker
+        this.trackerManager.updateIteration(iteration);
 
         console.log(`\n🔄 ITERATION ${iteration}: ${currentWorld.tiles.length}/${maxTiles} tiles`);
 
@@ -188,6 +205,9 @@ export class SimpleWorldGenerator {
 
         // Ask LLM to make placement decisions
         const llmDecision = await this.getLLMPlacementDecision(request, currentWorld, placementOptions, assetPack, maxTiles);
+
+        // Track LLM call
+        this.trackerManager.trackLLMCall('tile-placement');
 
         if (!llmDecision) {
           console.log(`❌ STOPPING: Failed to get LLM decision`);
@@ -231,6 +251,9 @@ export class SimpleWorldGenerator {
           maxTiles,
           this.emitEvent.bind(this)
         );
+
+        // Update generation tracker with results
+        this.trackerManager.updateWithResults(result);
 
         if (result.removalFailures.length > 0) {
           console.log(`❌ Tile removal failures: ${result.removalFailures.join(', ')}`);
@@ -303,6 +326,9 @@ export class SimpleWorldGenerator {
         // Ask LLM to identify and fill holes or remove tiles to resolve impossible holes
         const fillHolesDecision = await this.getLLMFillHolesDecision(request, currentWorld, populatableHoles, unpopulatableHoles, assetPack, maxTiles);
         
+        // Track hole filling LLM call
+        this.trackerManager.trackLLMCall('hole-filling');
+        
         // Check if hole filling decision has any valid actions (including addons)
         const hasAnyHoleFillingActions = fillHolesDecision && 
                                        (fillHolesDecision.placements.length > 0 || 
@@ -320,6 +346,9 @@ export class SimpleWorldGenerator {
             maxTiles,
             this.emitEvent.bind(this)
           );
+          
+          // Update generation tracker with hole-filling results
+          this.trackerManager.updateWithResults(fillResult);
           
           if (fillResult.removalFailures.length > 0) {
             console.log(`❌ Hole-filling removal failures: ${fillResult.removalFailures.join(', ')}`);
@@ -360,6 +389,19 @@ export class SimpleWorldGenerator {
       const edgeValidator = new EdgeValidator(this.assetPackManager);
       const validationSummary = edgeValidator.validateWorld(currentWorld);
 
+      // Create comprehensive generation metadata
+      const generationMetadata = GenerationMetadataCreator.createMetadata(
+        request,
+        currentWorld,
+        validationSummary,
+        this.trackerManager.getTracker(),
+        this.getCurrentPlan(),
+        this.llmProvider
+      );
+      
+      // Add metadata to the world object
+      currentWorld.generation_metadata = generationMetadata;
+
       this.emitEvent('completed', {
         stage: 'complete',
         currentStep: maxTiles,
@@ -374,29 +416,21 @@ export class SimpleWorldGenerator {
       console.log(`\n🏁 WORLD GENERATION COMPLETED`);
       console.log(`   Target: "${request.description}"`);
       console.log(`   Final Size: ${currentWorld.tiles.length}/${maxTiles} tiles (${((currentWorld.tiles.length / maxTiles) * 100).toFixed(1)}%)`);
-      console.log(`   Iterations Used: ${iteration}`);
+      console.log(`   Iterations Used: ${generationMetadata.generation_stats.total_iterations}`);
       console.log(`   Total Addons: ${currentWorld.addons.length}`);
+      console.log(`   Generation Time: ${generationMetadata.generation_stats.generation_time_ms}ms`);
+      console.log(`   LLM Calls: ${generationMetadata.llm_metadata?.total_llm_calls || 0}`);
       console.log(`   Validation: ${validationSummary.invalidEdges} invalid edges${validationSummary.invalidEdges === 0 ? ' ✅' : ' ⚠️'}`);
       
       // Tile composition breakdown
-      const tileComposition = new Map<string, number>();
-      currentWorld.tiles.forEach(tile => {
-        const count = tileComposition.get(tile.tile_type) || 0;
-        tileComposition.set(tile.tile_type, count + 1);
-      });
-      const sortedTiles = Array.from(tileComposition.entries())
+      const sortedTiles = Object.entries(generationMetadata.composition.tile_counts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5); // Show top 5 tile types
       console.log(`   Top Tiles: ${sortedTiles.map(([type, count]) => `${type}(${count})`).join(', ')}`);
       
       // Addon composition breakdown
       if (currentWorld.addons.length > 0) {
-        const addonComposition = new Map<string, number>();
-        currentWorld.addons.forEach(addon => {
-          const count = addonComposition.get(addon.addon_id) || 0;
-          addonComposition.set(addon.addon_id, count + 1);
-        });
-        const sortedAddons = Array.from(addonComposition.entries())
+        const sortedAddons = Object.entries(generationMetadata.composition.addon_counts)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3); // Show top 3 addon types
         console.log(`   Top Addons: ${sortedAddons.map(([type, count]) => `${type}(${count})`).join(', ')}`);

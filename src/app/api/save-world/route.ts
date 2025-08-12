@@ -33,15 +33,11 @@ export async function POST(request: NextRequest) {
     const publicDir = join(process.cwd(), 'public', 'assets', 'worlds');
     const filePath = join(publicDir, finalFilename);
 
-    // Add metadata to the world
-    const worldWithMetadata = {
-      ...world,
-      generated_at: new Date().toISOString(),
-      generated_by: 'llm-world-generator'
-    };
+    // The world object should already contain comprehensive metadata from the generator
+    const worldToSave = world;
 
     // Write the world file
-    await writeFile(filePath, JSON.stringify(worldWithMetadata, null, 2), 'utf8');
+    await writeFile(filePath, JSON.stringify(worldToSave, null, 2), 'utf8');
 
     const worldUrl = `/assets/worlds/${finalFilename}`;
 
