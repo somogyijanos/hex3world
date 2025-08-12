@@ -1072,7 +1072,7 @@ export default function HexWorldPage() {
               assetPackManager={assetManagerRef.current!}
               availableAssetPacks={AVAILABLE_ASSET_PACKS.map(pack => pack.id)}
               currentWorld={currentWorldData || undefined}
-              onWorldGenerated={async (world) => {
+              onWorldGenerated={async (world, savedWorldId) => {
                 // Update UI - world is already saved by the backend if saving is enabled
                 setCurrentWorldData(world);
                 if (hexRendererRef.current) {
@@ -1084,6 +1084,11 @@ export default function HexWorldPage() {
 
                 // Refresh available worlds list to show the newly saved world
                 await refreshAvailableWorlds();
+
+                // Update selected world to the newly generated world if it was saved
+                if (savedWorldId) {
+                  setSelectedWorld(savedWorldId);
+                }
               }}
               onProgressUpdate={(progress) => {
                 // Could show progress in a toast or status area

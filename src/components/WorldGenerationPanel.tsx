@@ -29,7 +29,7 @@ interface WorldGenerationPanelProps {
   assetPackManager: AssetPackManager;
   availableAssetPacks: string[];
   currentWorld?: World;
-  onWorldGenerated: (world: World) => void;
+  onWorldGenerated: (world: World, savedWorldId?: string) => void;
   onProgressUpdate?: (progress: GenerationProgress) => void;
 }
 
@@ -118,8 +118,15 @@ export function WorldGenerationPanel({
         currentWorld: result.world
       });
 
+      // Extract world ID from saved filename if available
+      let savedWorldId: string | undefined;
+      if (result.savedFilename) {
+        // Remove the .json extension to get the world ID
+        savedWorldId = result.savedFilename.replace('.json', '');
+      }
+
       // Call success callback
-      onWorldGenerated(result.world);
+      onWorldGenerated(result.world, savedWorldId);
       
       // Clear progress after a delay (longer if showing filename)
       const delay = result.savedFilename ? 4000 : 2000;
