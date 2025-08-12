@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { 
   Wand2, 
   ChevronDown, 
@@ -351,13 +352,13 @@ export function WorldGenerationPanel({
           <CollapsibleContent className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label htmlFor="max-tiles">Max Tiles: {maxTiles}</Label>
-              <input
+              <Slider
                 id="max-tiles"
-                type="range"
-                min="5"
-                max="100"
-                value={maxTiles}
-                onChange={(e) => setMaxTiles(parseInt(e.target.value))}
+                min={5}
+                max={100}
+                step={1}
+                value={[maxTiles]}
+                onValueChange={(value) => setMaxTiles(value[0])}
                 className="w-full"
               />
             </div>
@@ -367,7 +368,7 @@ export function WorldGenerationPanel({
                 checked={includeAddons}
                 onCheckedChange={setIncludeAddons}
               />
-              <Label htmlFor="include-addons">Include decorative add-ons</Label>
+              <Label htmlFor="include-addons">Use add-ons</Label>
             </div>
           </CollapsibleContent>
         </Collapsible>
