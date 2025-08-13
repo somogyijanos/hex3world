@@ -838,10 +838,23 @@ export default function HexWorldPage() {
                       <span className="sr-only">Close controls</span>
                     </Button>
                   </CollapsibleTrigger>
-                  <span className="flex items-center gap-2">
-                    <Earth className="h-4 w-4" />
-                    Hex3World
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="flex items-center gap-2">
+                      <Earth className="h-4 w-4" />
+                      Hex3World
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/70">
+                      by{' '}
+                      <a 
+                        href="https://nossom.dev" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline transition-colors"
+                      >
+                        nos|som
+                      </a>
+                    </span>
+                  </div>
                 </CardTitle>
               </CardHeader>
               
