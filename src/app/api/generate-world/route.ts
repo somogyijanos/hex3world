@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     // Load the asset pack with validation
     const assetPackUrl = `/assets/packs/${validatedData.assetPackId}.json`;
     try {
-      await assetPackManager.loadAssetPackFromUrl(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}${assetPackUrl}`);
+      await assetPackManager.loadAssetPackFromUrl(assetPackUrl);
     } catch (error) {
       console.error('Failed to load asset pack:', validatedData.assetPackId, error);
       return NextResponse.json({ 
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           console.log('Generated theme-based filename:', filename);
         }
 
-        const saveResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}/api/save-world`, {
+        const saveResponse = await fetch('/api/save-world', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ async function handleStreamingGeneration(requestData: GenerationRequest, clientI
         
         // Load the asset pack
         const assetPackUrl = `/assets/packs/${requestData.assetPackId}.json`;
-        await assetPackManager.loadAssetPackFromUrl(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}${assetPackUrl}`);
+        await assetPackManager.loadAssetPackFromUrl(assetPackUrl);
 
         // Initialize world generator
         const generator = new SimpleWorldGenerator(assetPackManager);
@@ -372,7 +372,7 @@ async function handleStreamingGeneration(requestData: GenerationRequest, clientI
               console.log('Generated theme-based filename:', filename);
             }
 
-            const saveResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : ''}/api/save-world`, {
+            const saveResponse = await fetch('/api/save-world', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
