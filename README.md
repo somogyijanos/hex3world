@@ -15,6 +15,28 @@ Generate beautiful 3D hex-based worlds using natural language descriptions. Just
 - 📦 **Asset Pack System** - Modular tile sets and add-ons
 - ✅ **Smart Validation** - Real-time tile compatibility checking
 
+## 🎨 Assets
+
+This project comes with beautiful medieval-themed 3D assets from the [KayKit Medieval Hexagon Pack](https://kaylousberg.itch.io/kaykit-medieval-hexagon). The pack includes:
+
+- **200+ Low-poly 3D models** - Optimized for performance across all platforms
+- **Hexagonal tiles** - Roads, rivers, coasts, and terrain variations
+- **Medieval buildings** - Castles, houses, blacksmiths, taverns, mills, and more
+- **Color variants** - Buildings available in blue, red, green, and yellow
+- **Nature props** - Trees, rocks, hills, mountains, and atmospheric elements
+- **CC0 Licensed** - Free for personal and commercial use
+
+All assets are textured with a single gradient atlas (1024x1024) and compatible with major 3D engines.
+
+### Using Custom Assets
+
+While this project ships with the KayKit Medieval pack, it's designed to work with any 3D asset collection. To use your own assets, you'll create:
+
+- **Asset pack JSON** - Defines available tiles, buildings, and props with their 3D model paths and metadata (for now, a manual process)
+- **World JSON files** - Pre-built worlds that reference your custom assets (which you'll be able to generate using AI)
+
+The JSON schemas define tile types, placement rules, edge compatibility, and 3D model references. See the `public/assets/packs/` and `public/assets/worlds/` directories for examples of the required format.
+
 ## 🚀 Quick Start
 
 ```bash
