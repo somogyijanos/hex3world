@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     // Check if this is a streaming request
     if (validatedData.stream) {
-      return handleStreamingGeneration(validatedData, clientId);
+      return handleStreamingGeneration(validatedData, clientId, request);
     }
 
     // Check session limits
@@ -170,7 +170,10 @@ export async function POST(request: NextRequest) {
     // Load the asset pack with validation
     const assetPackUrl = `/assets/packs/${validatedData.assetPackId}.json`;
     try {
-      await assetPackManager.loadAssetPackFromUrl(assetPackUrl);
+      // Convert relative URL to absolute URL for server-side fetch
+      const baseUrl = new URL(request.url).origin;
+      const absoluteUrl = new URL(assetPackUrl, baseUrl).toString();
+      await assetPackManager.loadAssetPackFromUrl(absoluteUrl);
     } catch (error) {
       console.error('Failed to load asset pack:', validatedData.assetPackId, error);
       return NextResponse.json({ 
@@ -264,7 +267,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleStreamingGeneration(requestData: GenerationRequest, clientId: string) {
+async function handleStreamingGeneration(requestData: GenerationRequest, clientId: string, request: NextRequest) {
   const encoder = new TextEncoder();
   
   const stream = new ReadableStream({
@@ -275,7 +278,10 @@ async function handleStreamingGeneration(requestData: GenerationRequest, clientI
         
         // Load the asset pack
         const assetPackUrl = `/assets/packs/${requestData.assetPackId}.json`;
-        await assetPackManager.loadAssetPackFromUrl(assetPackUrl);
+        // Convert relative URL to absolute URL for server-side fetch
+        const baseUrl = new URL(request.url).origin;
+        const absoluteUrl = new URL(assetPackUrl, baseUrl).toString();
+        await assetPackManager.loadAssetPackFromUrl(absoluteUrl);
 
         // Initialize world generator
         const generator = new SimpleWorldGenerator(assetPackManager);
