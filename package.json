@@ -1,7 +1,16 @@
 {
-  "name": "hex3world-nextjs",
+  "name": "hex3world",
   "version": "0.1.0",
+  "description": "AI-powered 3D hex world generator built with Next.js",
   "private": true,
+  "keywords": ["ai", "3d", "world-generator", "hexagonal", "nextjs", "three.js"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/somogyijanos/hex3world.git"
+  },
+  "homepage": "https://github.com/somogyijanos/hex3world",
+  "author": "János Somogyi",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
