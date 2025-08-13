@@ -1,0 +1,114 @@
+solid simple_tree.stl
+  facet normal 0.000000 0.000000 1.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.000000
+      vertex 0.050000 -0.050000 0.000000
+      vertex 0.050000 0.050000 0.000000
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 1.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.000000
+      vertex 0.050000 0.050000 0.000000
+      vertex -0.050000 0.050000 0.000000
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 -1.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.300000
+      vertex 0.050000 0.050000 0.300000
+      vertex 0.050000 -0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 -1.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.300000
+      vertex -0.050000 0.050000 0.300000
+      vertex 0.050000 0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 0.000000 1.000000 0.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.000000
+      vertex -0.050000 -0.050000 0.300000
+      vertex 0.050000 -0.050000 0.000000
+    endloop
+  endfacet
+  facet normal 0.000000 1.000000 -0.000000
+    outer loop
+      vertex 0.050000 -0.050000 0.000000
+      vertex -0.050000 -0.050000 0.300000
+      vertex 0.050000 -0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 0.000000 -1.000000 0.000000
+    outer loop
+      vertex 0.050000 0.050000 0.000000
+      vertex 0.050000 0.050000 0.300000
+      vertex -0.050000 0.050000 0.000000
+    endloop
+  endfacet
+  facet normal 0.000000 -1.000000 0.000000
+    outer loop
+      vertex -0.050000 0.050000 0.000000
+      vertex 0.050000 0.050000 0.300000
+      vertex -0.050000 0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 1.000000 0.000000 0.000000
+    outer loop
+      vertex -0.050000 -0.050000 0.000000
+      vertex -0.050000 0.050000 0.000000
+      vertex -0.050000 -0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 1.000000 0.000000 -0.000000
+    outer loop
+      vertex -0.050000 0.050000 0.000000
+      vertex -0.050000 0.050000 0.300000
+      vertex -0.050000 -0.050000 0.300000
+    endloop
+  endfacet
+  facet normal -1.000000 0.000000 0.000000
+    outer loop
+      vertex 0.050000 -0.050000 0.000000
+      vertex 0.050000 -0.050000 0.300000
+      vertex 0.050000 0.050000 0.000000
+    endloop
+  endfacet
+  facet normal -1.000000 0.000000 0.000000
+    outer loop
+      vertex 0.050000 0.050000 0.000000
+      vertex 0.050000 -0.050000 0.300000
+      vertex 0.050000 0.050000 0.300000
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 1.000000
+    outer loop
+      vertex 0.300000 0.000000 0.300000
+      vertex -0.150000 0.259800 0.300000
+      vertex -0.150000 -0.259800 0.300000
+    endloop
+  endfacet
+  facet normal -0.468156 -0.810893 -0.351117
+    outer loop
+      vertex 0.300000 0.000000 0.300000
+      vertex 0.000000 0.000000 0.700000
+      vertex -0.150000 0.259800 0.300000
+    endloop
+  endfacet
+  facet normal 0.936329 0.000000 -0.351123
+    outer loop
+      vertex -0.150000 0.259800 0.300000
+      vertex 0.000000 0.000000 0.700000
+      vertex -0.150000 -0.259800 0.300000
+    endloop
+  endfacet
+  facet normal -0.468156 0.810893 -0.351117
+    outer loop
+      vertex -0.150000 -0.259800 0.300000
+      vertex 0.000000 0.000000 0.700000
+      vertex 0.300000 0.000000 0.300000
+    endloop
+  endfacet
+endsolid simple_tree.stl
