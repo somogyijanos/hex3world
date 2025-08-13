@@ -222,7 +222,10 @@ export async function POST(request: NextRequest) {
           console.log('Generated theme-based filename:', filename);
         }
 
-        const saveResponse = await fetch('/api/save-world', {
+        // Convert relative URL to absolute URL for server-side fetch
+        const baseUrl = new URL(request.url).origin;
+        const saveUrl = new URL('/api/save-world', baseUrl).toString();
+        const saveResponse = await fetch(saveUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -378,7 +381,10 @@ async function handleStreamingGeneration(requestData: GenerationRequest, clientI
               console.log('Generated theme-based filename:', filename);
             }
 
-            const saveResponse = await fetch('/api/save-world', {
+            // Convert relative URL to absolute URL for server-side fetch
+            const baseUrl = new URL(request.url).origin;
+            const saveUrl = new URL('/api/save-world', baseUrl).toString();
+            const saveResponse = await fetch(saveUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
