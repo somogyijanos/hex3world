@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "description": "AI-powered 3D hex world generator built with Next.js",
   "private": true,
-  "keywords": ["ai", "3d", "world-generator", "hexagonal", "nextjs", "three.js"],
+  "keywords": [
+    "ai",
+    "3d",
+    "world-generator",
+    "hexagonal",
+    "nextjs",
+    "three.js"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/somogyijanos/hex3world.git"
@@ -26,6 +33,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.5",
     "@types/three": "^0.178.1",
+    "@vercel/analytics": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.0",
